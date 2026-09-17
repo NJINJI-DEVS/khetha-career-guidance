@@ -1,0 +1,169 @@
+[
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.ApsController",
+    "Method": "Calculate",
+    "RelativePath": "api/Aps/calculate",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "CareerAdvisor.Api.DTOs.ApsCalculationRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "CareerAdvisor.Api.DTOs.ApsCalculationResult",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.CoursesController",
+    "Method": "List",
+    "RelativePath": "api/Courses",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "faculty",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "province",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.CoursesController",
+    "Method": "Match",
+    "RelativePath": "api/Courses/match",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "CareerAdvisor.Api.DTOs.CourseMatchRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[CareerAdvisor.Api.DTOs.CourseMatchDto, CareerAdvisor.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.MatriculantsController",
+    "Method": "Create",
+    "RelativePath": "api/Matriculants",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "input",
+        "Type": "CareerAdvisor.Api.Models.Matriculant",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "CareerAdvisor.Api.Models.Matriculant",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.MatriculantsController",
+    "Method": "GetMine",
+    "RelativePath": "api/Matriculants/me",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "CareerAdvisor.Api.Models.Matriculant",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.MatriculantsController",
+    "Method": "UpdateSubjects",
+    "RelativePath": "api/Matriculants/me/subjects",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "subjects",
+        "Type": "System.Collections.Generic.List\u00601[[CareerAdvisor.Api.Models.MatriculantSubject, CareerAdvisor.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.QualificationsController",
+    "Method": "SearchOfo",
+    "RelativePath": "api/Qualifications/ofo",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "q",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerAdvisor.Api.Controllers.QualificationsController",
+    "Method": "SearchSaqa",
+    "RelativePath": "api/Qualifications/saqa",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "q",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
