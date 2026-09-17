@@ -170,38 +170,65 @@ a compliance attestation. Legal review is required before any public or producti
 
 ## Getting started
 
-> The frontend currently exists as a single self-contained component for rapid prototyping and demo
-> purposes. Migrating it into a proper Vite project (with `vite-plugin-pwa` for production-grade service
-> worker generation) is tracked in [Known limitations](#known-limitations--open-items).
+This is a two-part project: a Vite/React frontend and an ASP.NET Core backend, run
+together from the repo root. See `SETUP.md` for the full walkthrough, including how
+to verify the auth wiring actually works end to end — short version:
 
 ```bash
-# clone
-git clone https://github.com/<org-or-user>/njinji-career-guidance.git
-cd njinji-career-guidance
+git clone https://github.com/NJINJI-DEVS/khetha-career-guidance.git
+cd khetha-career-guidance
 
-# install
+# install root tooling (just `concurrently`, for running both dev servers at once)
 npm install
 
-# run locally
+# install frontend dependencies
+npm --prefix frontend install
+
+# restore backend dependencies
+dotnet restore backend
+
+# set up your local env — see Environment variables below
+cp frontend/.env.example frontend/.env.local
+
+# run both the frontend and the backend together, hot-reloading on save
 npm run dev
 ```
 
+Frontend runs at `http://localhost:5173`; the API's port is whatever
+`backend/Properties/launchSettings.json` specifies. `npm run dev:frontend`
+and `npm run dev:backend` are also available individually if you'd rather run one in
+its own terminal — useful if you want to attach VS Code's debugger to the API instead
+of running it through `dotnet watch`.
+
 ### Environment variables
 
-Create a `.env.local` (frontend) and the backend's own secrets configuration. Never commit either.
+**Frontend** — `frontend/.env.local` (copy from `frontend/.env.example`, gitignored):
 
 ```
-# Frontend — public values only
-VITE_API_BASE_URL=
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-
-# Backend — private, server-side only (example names; align to your actual config provider)
-SUPABASE_SERVICE_ROLE_KEY=
-DATABASE_CONNECTION_STRING=
-JWT_SIGNING_KEY=
-GEMINI_API_KEY=   # build-time translation script only, never shipped to the client
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-public-key
+VITE_API_BASE_URL=http://localhost:56878
 ```
+
+**Backend** — `backend/appsettings.Development.json` (create it yourself;
+gitignored — never commit real values here, only in the tracked `appsettings.json`
+placeholders):
+
+```json
+{
+  "ConnectionStrings": {
+    "Supabase": "Host=db.<project-ref>.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=<real-password>;SSL Mode=Require;Trust Server Certificate=true"
+  },
+  "Supabase": {
+    "Url": "https://<project-ref>.supabase.co",
+    "JwtSecret": "<real-jwt-secret-from-project-settings-api>"
+  }
+}
+```
+
+The backend validates Supabase-issued JWTs rather than issuing its own — the frontend
+authenticates directly against Supabase Auth (via `supabase-js`), then sends the
+resulting access token as a Bearer header on every API request.
 
 ---
 
@@ -217,20 +244,32 @@ For judging/demo purposes only — replace before any public deployment.
 ## Project structure
 
 ```
-├─ src/
-│  ├─ theme/            # palette + i18n catalogue (six languages, English-fallback)
-│  ├─ data/              # occupations, qualifications, providers, events, mentors, demo profiles
-│  ├─ engines/           # APS scoring, eligibility, subject chooser, RIASEC, job fit, risk flags
-│  ├─ components/        # shared UI primitives
-│  ├─ auth/              # role selection, verification, sign-in
-│  └─ screens/           # dashboard, tools, directories, mentor hub, workspace, approvals, analytics
-├─ scripts/
-│  └─ translate-with-gemini.mjs   # build-time translation of the UI catalogue
-├─ public/
-│  ├─ manifest.webmanifest
-│  └─ service-worker.js
+khetha-career-guidance/
+├─ backend/            # ASP.NET Core backend
+│  ├─ Controllers/               # Aps, Courses, Matriculants, Qualifications
+│  ├─ Data/                      # AppDbContext (EF Core, Npgsql → Supabase Postgres)
+│  ├─ Models/                    # Matriculant, Course, University, OfoCode, SaqaQualification, ...
+│  ├─ DTOs/
+│  ├─ Services/                  # APS calculator, course matcher, OFO/SAQA batch importers
+│  └─ Program.cs                 # validates Supabase-issued JWTs; no auth endpoints of its own
+├─ frontend/                     # Vite + React app
+│  └─ src/
+│     ├─ App.jsx                 # the full application (screens, engines, i18n, all in one component)
+│     ├─ main.jsx
+│     └─ lib/
+│        ├─ supabaseClient.js    # Supabase Auth client
+│        └─ api.js               # fetch wrapper that attaches the Supabase JWT to API calls
+├─ package.json                  # root — `npm run dev` runs frontend + backend together
+├─ SETUP.md                      # how to install, configure env vars, and verify the wiring
+├─ FIXES.md                      # tracked backend fixes (e.g. the APS scale correction)
 └─ README.md
 ```
+
+A note on `App.jsx` being one large file rather than split into `screens/`,
+`engines/`, etc.: that's intentional for now, carried over from how the app was
+originally built and iterated on as a single self-contained component. Splitting it
+into modules is reasonable future work, but should be its own deliberate PR — not
+something to do accidentally while wiring up the backend.
 
 ---
 

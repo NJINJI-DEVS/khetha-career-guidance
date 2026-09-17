@@ -6,7 +6,7 @@ Concrete changes to apply in VS Code before building anything else on top of thi
 
 ## 1. Fix the APS scale bug
 
-**File:** `CareerAdvisor.Api/Services/ApsCalculatorService.cs`
+**File:** `backend/Services/ApsCalculatorService.cs`
 
 **Problem:** The band table is shifted one level too high compared to the real NSC
 (National Senior Certificate) achievement scale — the one already used correctly in the
@@ -65,12 +65,12 @@ both go through this same method).
 From the repo root, in the terminal:
 
 ```bash
-git rm -r --cached CareerAdvisor.Api/bin CareerAdvisor.Api/obj
+git rm -r --cached backend/bin backend/obj
 ```
 
 This untracks them without deleting them from disk.
 
-Then create a `.gitignore` at the **repo root** (not inside `CareerAdvisor.Api/`)
+Then create a `.gitignore` at the **repo root** (not inside `backend/`)
 containing at least:
 
 ```
@@ -86,7 +86,7 @@ appsettings.*.local.json
 
 ## 3. Remove the stray empty folder
 
-Delete `CareerAdvisor.Api/khetha-career-guidance/` in the VS Code file explorer — it's
+Delete `backend/khetha-career-guidance/` in the VS Code file explorer — it's
 empty and unused.
 
 ---
