@@ -1,0 +1,39 @@
+MIT License
+
+Copyright (c) 2026 Njinjicom
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Notice on third-party marks and government content
+
+This license covers the original source code in this repository only. It does
+NOT extend to:
+
+- The **DHET coat of arms** and **Khetha wordmark**, which are inlined as brand
+  assets for demonstration purposes. Use of the South African national coat of
+  arms by third parties is subject to separate rules under the Department of
+  Higher Education and Training — confirm permission with DHET before any
+  public or production deployment. See `README.md` → Known limitations.
+- Content sourced or adapted from the **National Career Advice Portal (NCAP)**,
+  which remains the property of DHET's Khetha Career Development Services.
+- Any occupation, qualification, provider, event or salary data marked as
+  illustrative in this repository, which is provided for demonstration only
+  and is not authoritative careers information.
