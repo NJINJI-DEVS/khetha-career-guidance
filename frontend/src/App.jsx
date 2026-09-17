@@ -31,6 +31,9 @@ import { riskFlags } from './engines/riskFlags';
 import { redact } from './engines/redact';
 import { buildSmsSummary } from './engines/smsSummary';
 import { fmt, pct } from './engines/format';
+import { idbOpen, idbGet, idbSet } from './services/idb';
+import { storage, STORE_KEY } from './services/storage';
+import { useT } from './hooks/useT';
 
 
 /* ==================================================================
@@ -63,16 +66,6 @@ import { fmt, pct } from './engines/format';
 
 
 
-/* t("stepOf", { n: 2, total: 6 }) -> "Step 2 of 6" */
-const useT = (lang) =>
-  useCallback(
-    (key, vars) => {
-      let out = STRINGS[lang]?.[key] ?? STRINGS.en[key] ?? key;
-      if (vars) Object.entries(vars).forEach(([k, v]) => { out = out.replace(`{${k}}`, v); });
-      return out;
-    },
-    [lang]
-  );
 
 /* ---------- NSC scoring (R2, APS tool) ---------------------------- */
 
@@ -1101,45 +1094,6 @@ function ToolsStrip({ t, go, profile }) {
   );
 }
 
-/* ==================================================================
-   Offline: IndexedDB with a localStorage fallback
-   ================================================================== */
-
-const IDB_NAME = "njinji-career";
-const IDB_STORE = "kv";
-
-function idbOpen() {
-  return new Promise((resolve, reject) => {
-    try {
-      const req = window.indexedDB.open(IDB_NAME, 1);
-      req.onupgradeneeded = () => {
-        if (!req.result.objectStoreNames.contains(IDB_STORE)) req.result.createObjectStore(IDB_STORE);
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    } catch (e) { reject(e); }
-  });
-}
-
-async function idbSet(key, value) {
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readwrite");
-    tx.objectStore(IDB_STORE).put(value, key);
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function idbGet(key) {
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readonly");
-    const req = tx.objectStore(IDB_STORE).get(key);
-    req.onsuccess = () => resolve(req.result ?? null);
-    req.onerror = () => reject(req.error);
-  });
-}
 
 /* Screen the learner opens with no connection at all */
 function OfflineCentre({ t, settings, setSettings, packs, togglePack, profile, learner, aps,
@@ -4193,50 +4147,6 @@ function MeScreen({ t, session, profile, setProfile, settings, setSettings, noti
 }
 
 
-/* ==================================================================
-   Persistence: localStorage with a graceful in-memory fallback.
-   Some sandboxed preview frames block storage; the app must still run.
-   ================================================================== */
-const STORE_KEY = "njinji.career.v1";
-const memoryStore = {};
-
-const storage = {
-  available: (() => {
-    try {
-      const k = "__njinji_probe__";
-      window.localStorage.setItem(k, "1");
-      window.localStorage.removeItem(k);
-      return true;
-    } catch {
-      return false;
-    }
-  })(),
-  read() {
-    try {
-      const raw = this.available ? window.localStorage.getItem(STORE_KEY) : memoryStore[STORE_KEY];
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  },
-  write(value) {
-    const raw = JSON.stringify(value);
-    try {
-      if (this.available) window.localStorage.setItem(STORE_KEY, raw);
-      else memoryStore[STORE_KEY] = raw;
-      return true;
-    } catch {
-      memoryStore[STORE_KEY] = raw;
-      return false;
-    }
-  },
-  clear() {
-    try {
-      if (this.available) window.localStorage.removeItem(STORE_KEY);
-    } catch { /* ignore */ }
-    delete memoryStore[STORE_KEY];
-  },
-};
 
 /* ==================================================================
    Root — responsive across mobile, tablet and desktop
