@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Home, Compass, Wrench, MessageCircle, User, Calculator, Search, Camera, GraduationCap, Briefcase, FlaskConical, ShieldCheck, CalendarClock, ChevronRight, ChevronLeft, Sparkles, Send, Loader2, X, BookOpen, MapPin, Award, AlertTriangle, CheckCircle2, Building2, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, Smartphone, KeyRound, LogOut, Heart, Bell, BellRing, Download, WifiOff, Type, Contrast, Languages, Trash2, FileDown, Plug, RefreshCw, Accessibility, ClipboardList, Target, Users, TrendingUp, CircleHelp, PhoneCall, MessageSquare, CalendarDays, Star, Info, Check } from 'lucide-react';
-import dhetArms from './assets/dhet-arms.png';
-import khethaWordmark from './assets/khetha-wordmark.png';
 import { THEME, KHETHA } from './theme/tokens';
 import { LANGUAGES, STRINGS } from './data/i18n';
 import { NSC_BANDS, SUBJECT_LABELS } from './data/subjects';
@@ -34,6 +32,26 @@ import { fmt, pct } from './engines/format';
 import { idbOpen, idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useT } from './hooks/useT';
+import { Pill } from './components/ui/Pill';
+import { SectionTitle } from './components/ui/SectionTitle';
+import { Screen } from './components/ui/Screen';
+import { FavouriteButton } from './components/ui/FavouriteButton';
+import { Likert } from './components/ui/Likert';
+import { Progress } from './components/ui/Progress';
+import { EmptyState } from './components/ui/EmptyState';
+import { DhetArms, KhethaWordmark, SaStripe } from './components/ui/BrandMarks';
+import { TierBadges } from './components/ui/TierBadges';
+import { LanguagePicker } from './components/ui/LanguagePicker';
+import { GoogleMark, AppleMark } from './components/ui/SocialMarks';
+import { ModalShell } from './components/ui/ModalShell';
+import { SearchBar } from './components/ui/SearchBar';
+import { Chips } from './components/ui/Chips';
+import { VerificationBadge } from './components/ui/VerificationBadge';
+import { RoadmapCallout } from './components/ui/RoadmapCallout';
+import { StatCard } from './components/ui/StatCard';
+import { BarRow } from './components/ui/BarRow';
+import { Donut } from './components/ui/Donut';
+import { Panel } from './components/ui/Panel';
 
 
 /* ==================================================================
@@ -122,193 +140,9 @@ const occById = Object.fromEntries(OCCUPATIONS.map((o) => [o.id, o]));
    Shared UI primitives
    ================================================================== */
 
-function Pill({ children, tone = "slate", icon: Icon, style }) {
-  const tones = {
-    slate: "bg-slate-100 text-slate-700 ring-slate-200",
-    green: "k-bg-E7F4EE k-tx-005A36 k-rg-A8DCC5",
-    gold: "k-bg-FBF5E7 k-tx-6B5307 k-rg-E4CE8A",
-    navy: "bg-slate-900 text-white ring-slate-900",
-    red: "k-bg-FBEAE8 k-tx-9B1C14 k-rg-F2CBC7",
-    blue: "k-bg-EAEFF7 k-tx-1E3A6E k-rg-C3CFE4",
-  };
-  return (
-    <span
-      style={style}
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${tones[tone]}`}
-    >
-      {Icon ? <Icon className="h-3 w-3" /> : null}
-      {children}
-    </span>
-  );
-}
-
-function SectionTitle({ children, hint }) {
-  return (
-    <div className="mb-3 flex items-end justify-between gap-3">
-      <h2 className="text-base font-semibold tracking-tight text-slate-900">{children}</h2>
-      {hint ? <span className="text-xs text-slate-600">{hint}</span> : null}
-    </div>
-  );
-}
-
-function Screen({ title, subtitle, onBack, children, action }) {
-  return (
-    <div className="p-4 pb-6">
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-900 ring-1 ring-slate-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-      )}
-      {title && (
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold tracking-tight text-slate-900">{title}</h2>
-            {subtitle && (
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{subtitle}</p>
-            )}
-          </div>
-          {action}
-        </div>
-      )}
-      {children}
-    </div>
-  );
-}
-
-function FavouriteButton({ on, onToggle, label }) {
-  return (
-    <button
-      onClick={onToggle}
-      aria-pressed={on}
-      aria-label={on ? `Remove ${label} from saved` : `Save ${label}`}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ring-1 transition-colors ${
-        on ? "k-bg-FBEAE8 k-tx-B3261E k-rg-F2CBC7" : "bg-white text-slate-500 ring-slate-200"
-      }`}
-    >
-      <Heart className={`h-4 w-4 ${on ? "fill-current" : ""}`} />
-    </button>
-  );
-}
-
-function Likert({ value, onChange, name }) {
-  return (
-    <div className="mt-3 grid grid-cols-5 gap-1.5" role="radiogroup" aria-label={name}>
-      {AGREE_SCALE.map((s) => (
-        <button
-          key={s.v}
-          role="radio"
-          aria-checked={value === s.v}
-          onClick={() => onChange(s.v)}
-          className={`rounded-lg px-1 py-2 text-[10px] font-medium leading-tight transition-colors ${
-            value === s.v
-              ? "k-bg-005A36 text-white"
-              : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-          }`}
-        >
-          {s.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function Progress({ value, max, color = KHETHA.green }) {
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-      <div
-        className="h-full rounded-full transition-all"
-        style={{ width: `${Math.round((value / max) * 100)}%`, background: color }}
-      />
-    </div>
-  );
-}
-
-function EmptyState({ icon: Icon, title, body, cta, onCta }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center">
-      {Icon && <Icon className="mx-auto h-8 w-8 text-slate-400" />}
-      <p className="mt-3 text-sm font-semibold text-slate-900">{title}</p>
-      <p className="mt-1 text-xs leading-relaxed text-slate-600">{body}</p>
-      {cta && (
-        <button
-          onClick={onCta}
-          className="mt-4 rounded-lg k-bg-005A36 px-4 py-2 text-xs font-semibold text-white"
-        >
-          {cta}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function DhetArms({ className = "h-9" }) {
-  return (
-    <img src={dhetArms} alt="Coat of arms of the Republic of South Africa" className={`${className} w-auto`} />
-  );
-}
-function KhethaWordmark({ className = "h-6" }) {
-  return (
-    <img src={khethaWordmark} alt="Khetha — make the right choice, decide your future" className={`${className} w-auto`} />
-  );
-}
-function SaStripe() {
-  return (
-    <span className="flex h-4 w-6 flex-col overflow-hidden rounded-sm" aria-hidden>
-      <span className="flex-1 k-bg-B3261E" />
-      <span className="flex-1 bg-white" />
-      <span className="flex-1 k-bg-1E3A6E" />
-    </span>
-  );
-}
-
 /* ==================================================================
    Multi-role architecture
    ================================================================== */
-
-
-
-
-
-function TierBadges({ tiers }) {
-  if (!tiers || tiers.length === 0) return <Pill tone="slate">Verification pending</Pill>;
-  return (
-    <>
-      {tiers.map((k) => {
-        const tier = TIERS[k];
-        return <Pill key={k} tone={tier.tone} icon={tier.icon}>{tier.label}</Pill>;
-      })}
-    </>
-  );
-}
-
-/* ---- Language picker, shown before anyone has an account ---------- */
-function LanguagePicker({ t, lang, setLang, compact }) {
-  return (
-    <div className={compact ? "" : "rounded-2xl border border-slate-200 bg-white p-3"}>
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-900">
-        <Languages className="h-3.5 w-3.5" />{t("chooseLanguage")}
-      </p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {LANGUAGES.map((l) => (
-          <button key={l.code} onClick={() => setLang(l.code)}
-            lang={l.code} aria-pressed={lang === l.code}
-            className={`rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
-              lang === l.code ? "k-bg-005A36 text-white" : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-            }`}>
-            {l.native}
-          </button>
-        ))}
-      </div>
-      {!compact && (
-        <p className="mt-2 text-[10px] leading-relaxed text-slate-600">{t("languageHint")}</p>
-      )}
-    </div>
-  );
-}
 
 /* ---- Pre-login role selector -------------------------------------- */
 function RoleSelector({ t, lang, setLang, onPick }) {
@@ -589,23 +423,6 @@ function VerificationFlow({ role, onComplete, onCancel }) {
 
 
 
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
-      <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-2.8-.4-4H24v7.3h12.1c-.2 2-1.6 5-4.5 7l-.1.3 6.5 5 .5.1c4.1-3.8 6.6-9.4 6.6-15.7" />
-      <path fill="#34A853" d="M24 46c5.9 0 10.9-1.9 14.5-5.3l-6.9-5.3c-1.8 1.3-4.3 2.2-7.6 2.2-5.8 0-10.7-3.8-12.5-9.9l-.3.1-6.7 5.2-.1.3C7.9 40.9 15.4 46 24 46" />
-      <path fill="#FBBC05" d="M11.5 27.7c-.5-1.4-.7-2.9-.7-4.4s.3-3 .7-4.4v-.3l-6.8-5.3-.2.1A22 22 0 0 0 2 23.3c0 3.5.9 6.9 2.5 9.9z" />
-      <path fill="#EA4335" d="M24 9.5c4.1 0 6.9 1.8 8.5 3.3l6.2-6C34.9 3.3 29.9 1 24 1 15.4 1 7.9 6.1 4.5 13.4l7 5.4C13.3 13.3 18.2 9.5 24 9.5" />
-    </svg>
-  );
-}
-function AppleMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden>
-      <path d="M16.4 12.7c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.6-1.9-1.5-.2-3 .9-3.8.9s-2-.9-3.2-.9c-1.7 0-3.2 1-4.1 2.5-1.7 3-.4 7.5 1.3 10 .8 1.2 1.8 2.5 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-3.9zM14 4.8c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.2-.6 2.9-1.4z" />
-    </svg>
-  );
-}
 
 function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) {
   const [step, setStep] = useState("choose");
@@ -1329,29 +1146,6 @@ function ViewportSwitcher({ value, onChange }) {
    Modals: shell, OCR report-card scan, SMS summary
    ================================================================== */
 
-function ModalShell({ title, onClose, children, wide }) {
-  useEffect(() => {
-    const onEsc = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [onClose]);
-
-  return (
-    <div className="absolute inset-0 z-40 flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4"
-      role="dialog" aria-modal="true" aria-label={title}>
-      <div className={`max-h-full w-full overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl ${wide ? "sm:max-w-2xl" : "sm:max-w-md"}`}>
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <h3 className="text-base font-bold tracking-tight text-slate-900">{title}</h3>
-          <button onClick={onClose} aria-label="Close"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-700">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 /* ---- AI OCR simulation -------------------------------------------- */
 function OcrScanModal({ learner, onClose, onApply }) {
@@ -2090,35 +1884,6 @@ function ToolsHub({ t, go, profile }) {
    R4: Careers, What to study, Where to study — plus R8 advice
    ================================================================== */
 
-function SearchBar({ value, onChange, placeholder }) {
-  return (
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-500 k-fb-00784A focus:outline-none focus-visible:ring-2 k-fvr-D4AF37" />
-    </div>
-  );
-}
-
-function Chips({ options, value, onChange, colorFor }) {
-  return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-      {options.map((o) => {
-        const on = value === o.key;
-        const c = colorFor?.(o.key);
-        return (
-          <button key={o.key} onClick={() => onChange(o.key)}
-            style={on && c ? { background: c, color: c === KHETHA.gold ? KHETHA.ink : "#fff" } : undefined}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              on ? (c ? "" : "k-bg-005A36 text-white") : "bg-white text-slate-700 ring-1 ring-slate-200"
-            }`}>
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function CareersDirectory({ fav, toggleFav, onOpen, fieldFilter, setFieldFilter }) {
   const [q, setQ] = useState("");
@@ -2528,34 +2293,6 @@ function QualDetail({ id, onBack, ctx, fav, toggleFav }) {
    string never reaches the other learner's device. */
 
 
-function VerificationBadge({ mentor }) {
-  const partner = mentor.partner ? partnerById[mentor.partner] : null;
-  if (partner) {
-    return (
-      <Pill tone="green" icon={ShieldCheck}>
-        Verified via {partner.name.length > 28 ? partner.name.slice(0, 26) + "…" : partner.name}
-      </Pill>
-    );
-  }
-  if (mentor.employerVerified) {
-    return <Pill tone="blue" icon={ShieldCheck}>Employer-verified professional</Pill>;
-  }
-  return <Pill tone="slate">Unverified</Pill>;
-}
-
-function RoadmapCallout() {
-  return (
-    <div className="flex items-start gap-2.5 rounded-xl border k-bd-D4AF37 k-bg-FBF5E7 p-3">
-      <Info className="mt-0.5 h-4 w-4 shrink-0 k-tx-6B5307" />
-      <p className="text-[11px] leading-relaxed k-tx-6B5307">
-        <span className="font-semibold">How verification works today.</span> Every mentor in this MVP is vouched for
-        by a partner NGO or a student society, because those organisations already run their own vetting. The roadmap
-        adds SACE registration numbers for teachers, academic transcript checks with institutions, and corporate email
-        domain verification for industry professionals.
-      </p>
-    </div>
-  );
-}
 
 function MentorCard({ m, onRequest, onOpen }) {
   return (
@@ -3421,88 +3158,6 @@ function AdminApprovals({ applications, setApplications }) {
 
 
 
-function StatCard({ label, value, sub, color = THEME.primary, icon: Icon }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] leading-tight text-slate-600">{label}</p>
-        {Icon && (
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: color }}>
-            <Icon className="h-3.5 w-3.5" />
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] leading-tight text-slate-600">{sub}</p>}
-    </div>
-  );
-}
-
-function BarRow({ label, value, max, display, color = THEME.primary }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="truncate text-[11px] text-slate-700">{label}</span>
-        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-900">{display}</span>
-      </div>
-      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full" style={{ width: `${(value / max) * 100}%`, background: color }} />
-      </div>
-    </div>
-  );
-}
-
-function Donut({ segments, centreLabel, centreValue }) {
-  const total = segments.reduce((a, s) => a + s.n, 0);
-  const R = 52, C = 2 * Math.PI * R;
-  let offset = 0;
-  return (
-    <div className="flex items-center gap-4">
-      <svg viewBox="0 0 140 140" className="h-32 w-32 shrink-0" role="img" aria-label={`${centreLabel}: ${centreValue}`}>
-        <circle cx="70" cy="70" r={R} fill="none" stroke="#E2E8F0" strokeWidth="18" />
-        {segments.map((s) => {
-          const len = (s.n / total) * C;
-          const el = (
-            <circle key={s.method || s.label} cx="70" cy="70" r={R} fill="none" stroke={s.color} strokeWidth="18"
-              strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset}
-              transform="rotate(-90 70 70)" />
-          );
-          offset += len;
-          return el;
-        })}
-        <text x="70" y="66" textAnchor="middle" className="fill-slate-900" style={{ fontSize: 20, fontWeight: 700 }}>
-          {centreValue}
-        </text>
-        <text x="70" y="82" textAnchor="middle" className="fill-slate-500" style={{ fontSize: 9 }}>
-          {centreLabel}
-        </text>
-      </svg>
-      <div className="min-w-0 flex-1 space-y-1.5">
-        {segments.map((s) => (
-          <div key={s.method || s.label} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
-            <span className="flex-1 truncate text-[11px] text-slate-700">{s.method || s.label}</span>
-            <span className="text-[11px] font-semibold tabular-nums text-slate-900">
-              {Math.round((s.n / total) * 100)}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Panel({ title, hint, children, wide }) {
-  return (
-    <section className={`rounded-2xl border border-slate-200 bg-white p-4 ${wide ? "lg:col-span-2" : ""}`}>
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <h3 className="text-sm font-semibold tracking-tight text-slate-900">{title}</h3>
-        {hint && <span className="shrink-0 text-[10px] text-slate-600">{hint}</span>}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 function AdminAnalytics({ liveAps }) {
   const t = TELEMETRY;
