@@ -9,20 +9,34 @@ var builder = WebApplication.CreateBuilder(args);
 // ---- Database: Supabase Postgres via Npgsql -------------------------------
 // Connection string comes from appsettings / env var, e.g.:
 // "Host=db.<project-ref>.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=***;SSL Mode=Require;Trust Server Certificate=true"
+// This can't itself live in Supabase Vault — you need a working DB connection to
+// read Vault in the first place — so it stays in normal config/env as before.
+var connectionString = builder.Configuration.GetConnectionString("Supabase")
+    ?? throw new InvalidOperationException("ConnectionStrings:Supabase is not configured");
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("Supabase")));
+    opt.UseNpgsql(connectionString)
+       .UseSnakeCaseNamingConvention());
 
 // ---- Auth: validate Supabase-issued JWTs -----------------------------------
 // Supabase Auth issues standard JWTs signed with your project's JWT secret.
 // The React frontend authenticates via supabase-js and sends the access_token
 // as a Bearer header; this API just validates it rather than issuing its own.
-var supabaseJwtSecret = builder.Configuration["Supabase:JwtSecret"]
-    ?? throw new InvalidOperationException("Supabase:JwtSecret is not configured");
+// The secret itself is fetched from Supabase Vault (see VaultSecretService) rather
+// than kept in plaintext config — it's the one piece here that's actually secret;
+// Supabase:Url is just the project's public URL.
+var vault = new VaultSecretService(connectionString);
+var supabaseJwtSecret = await vault.GetRequiredSecretAsync("supabase_jwt_secret");
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // Without this, the JwtBearerHandler remaps well-known claim names (e.g. "sub"
+        // -> the WS-* nameidentifier URI) before they reach User.FindFirst(), which
+        // silently breaks every controller that reads Supabase's "sub" claim by name
+        // (see MatriculantsController.CurrentUserId).
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -37,6 +51,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ---- App services -----------------------------------------------------------
+builder.Services.AddSingleton<IVaultSecretService>(vault);
 builder.Services.AddScoped<IApsCalculatorService, ApsCalculatorService>();
 builder.Services.AddScoped<ICourseMatchingService, CourseMatchingService>();
 builder.Services.AddScoped<IOfoImportService, OfoImportService>();
@@ -65,7 +80,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Skipped in Development: the frontend's dev server talks to the API over plain
+// http on localhost (see frontend/.env.example's VITE_API_BASE_URL), and a redirect
+// to https here would hit the ASP.NET Core dev cert, which browsers reject unless
+// `dotnet dev-certs https --trust` has been run — breaking every fetch() call with
+// a TLS error rather than a clear one.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();

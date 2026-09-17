@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CareerAdvisor.Api.Models;
 
 /// <summary>
@@ -23,6 +25,12 @@ public class MatriculantSubject
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid MatriculantId { get; set; }
+
+    // Back-reference only, for EF navigation — not serialized: Matriculant.Subjects
+    // already contains this object, so round-tripping it here forms a cycle that
+    // System.Text.Json can't serialize (throws on any request that returns a
+    // Matriculant with subjects, e.g. GetMine/Create).
+    [JsonIgnore]
     public Matriculant? Matriculant { get; set; }
 
     public string SubjectName { get; set; } = string.Empty; // e.g. "Mathematics"

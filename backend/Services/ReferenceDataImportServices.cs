@@ -1,5 +1,6 @@
 using CareerAdvisor.Api.Data;
 using CareerAdvisor.Api.Models;
+using Microsoft.EntityFrameworkCore;
 using CsvRow = System.Collections.Generic.Dictionary<string, string>;
 
 namespace CareerAdvisor.Api.Services;
@@ -37,7 +38,7 @@ public class OfoImportService : IOfoImportService
             var code = row.GetValueOrDefault("OFO Code") ?? row.GetValueOrDefault("code") ?? "";
             if (string.IsNullOrWhiteSpace(code)) continue;
 
-            var existing = _db.OfoCodes.FirstOrDefault(o => o.Code == code);
+            var existing = await _db.OfoCodes.FirstOrDefaultAsync(o => o.Code == code, ct);
             if (existing is null)
             {
                 existing = new OfoCode { Code = code };
@@ -86,7 +87,7 @@ public class SaqaImportService : ISaqaImportService
             var saqaId = row.GetValueOrDefault("SAQA ID") ?? row.GetValueOrDefault("saqa_id") ?? "";
             if (string.IsNullOrWhiteSpace(saqaId)) continue;
 
-            var existing = _db.SaqaQualifications.FirstOrDefault(s => s.SaqaId == saqaId);
+            var existing = await _db.SaqaQualifications.FirstOrDefaultAsync(s => s.SaqaId == saqaId, ct);
             if (existing is null)
             {
                 existing = new SaqaQualification { SaqaId = saqaId };
