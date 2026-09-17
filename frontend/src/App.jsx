@@ -18,12 +18,19 @@ import { ROLES, PARTNER_CODES, LICENCE_BODIES, TIERS } from './data/roles';
 import { OTP_LENGTH, DEMO_CODE, CONSENT_ITEMS } from './data/auth';
 import { JOURNEY } from './data/journey';
 import { VIEWPORTS } from './data/viewports';
-import { REDACTION_RULES } from './data/redaction';
-import { FREE_EMAIL, LICENCE_FORMATS } from './data/validation';
 import { VERDICT_STYLE, LEVEL_STYLE } from './data/verdictStyles';
 import { SEED_APPLICATIONS, VETTING_GUIDE } from './data/seedApplications';
 import { TELEMETRY } from './data/telemetry';
 import { GREETING, SCRIPTS, FALLBACK } from './data/advisorScript';
+import { toLevel, bandLabel } from './engines/levels';
+import { scoreCareerChoice } from './engines/careerChoice';
+import { scoreJobFit } from './engines/jobFit';
+import { chooseSubjects, eligibility } from './engines/subjects';
+import { checkSaId } from './engines/saId';
+import { riskFlags } from './engines/riskFlags';
+import { redact } from './engines/redact';
+import { buildSmsSummary } from './engines/smsSummary';
+import { fmt, pct } from './engines/format';
 
 
 /* ==================================================================
@@ -68,8 +75,6 @@ const useT = (lang) =>
   );
 
 /* ---------- NSC scoring (R2, APS tool) ---------------------------- */
-const toLevel = (p) => NSC_BANDS.find((b) => p >= b.min).level;
-const bandLabel = (p) => NSC_BANDS.find((b) => p >= b.min).label;
 
 
 /* ---------- R1/R4: NCAP career fields ----------------------------- */
@@ -109,91 +114,16 @@ const occById = Object.fromEntries(OCCUPATIONS.map((o) => [o.id, o]));
 
 
 
-function scoreCareerChoice(answers) {
-  const totals = {};
-  Object.keys(RIASEC_TYPES).forEach((t) => (totals[t] = 0));
-  CAREER_CHOICE_Q.forEach((q) => {
-    totals[q.type] += answers[q.id] || 0;
-  });
-  const ranked = Object.entries(totals)
-    .map(([type, raw]) => ({ type, raw, pct: Math.round((raw / 10) * 100) }))
-    .sort((a, b) => b.raw - a.raw);
-  const code = ranked.slice(0, 3).map((r) => r.type);
-  const matches = OCCUPATIONS.map((o) => {
-    const hits = o.riasec.filter((t) => code.includes(t)).length;
-    const weight = o.riasec.reduce(
-      (acc, t) => acc + (code.indexOf(t) === -1 ? 0 : 3 - code.indexOf(t)),
-      0
-    );
-    return { ...o, hits, weight };
-  })
-    .filter((o) => o.hits > 0)
-    .sort((a, b) => b.weight - a.weight)
-    .slice(0, 6);
-  return { ranked, code, matches };
-}
 
 /* Job Fit — work-context preferences matched against each occupation's
    context vector. Lower distance is a closer fit. */
 
-function scoreJobFit(answers) {
-  const axes = ["people", "data", "things", "outdoors", "routine"];
-  const profile = {};
-  axes.forEach((a) => {
-    const qs = JOB_FIT_Q.filter((q) => q.axis === a);
-    const sum = qs.reduce((acc, q) => acc + (answers[q.id] || 0), 0);
-    /* 2 questions on a 1-5 scale -> 2..10, normalised to the 0-4 vector */
-    profile[a] = Math.round(((sum - 2) / 8) * 4);
-  });
-  const matches = OCCUPATIONS.map((o) => {
-    const distance = axes.reduce(
-      (acc, a) => acc + Math.abs(o.context[a] - profile[a]),
-      0
-    );
-    const fit = Math.max(0, Math.round(100 - (distance / 20) * 100));
-    return { ...o, fit };
-  }).sort((a, b) => b.fit - a.fit);
-  return { profile, matches };
-}
 
 /* R2: Subject Chooser — maps chosen career fields to the CAPS subjects
    those pathways require, then checks them against Grade 9 marks. */
 
-function chooseSubjects(marks, interests) {
-  const keys = interests.length ? interests : Object.keys(PACKAGES);
-  return keys
-    .map((k) => {
-      const p = PACKAGES[k];
-      const gates = Object.entries(p.gate).map(([subject, min]) => {
-        const got = marks[subject] ?? marks[subject === "lifesci" ? "science" : subject] ?? null;
-        return { subject, min, got, met: got !== null && got >= min };
-      });
-      const met = gates.filter((g) => g.met).length;
-      const avgGap = gates.reduce(
-        (acc, g) => acc + ((g.got ?? 0) - g.min),
-        0
-      ) / gates.length;
-      const readiness = Math.max(
-        5,
-        Math.min(100, Math.round(60 + avgGap * 2 + met * 12))
-      );
-      return { ...p, gates, met, readiness, chosen: interests.includes(k) };
-    })
-    .sort((a, b) => b.readiness - a.readiness);
-}
 
 /* Eligibility of a qualification, given APS and subject marks */
-function eligibility(qual, { aps, marks, mathsIsPure }) {
-  const unmet = [];
-  if (aps < qual.minAPS) unmet.push(`APS ${qual.minAPS}+ needed`);
-  if (qual.pureMathsOnly && !mathsIsPure) unmet.push("Pure Maths required");
-  Object.entries(qual.requires).forEach(([key, min]) => {
-    const got = marks[key];
-    if (got === undefined || got < min)
-      unmet.push(`${SUBJECT_LABELS[key] || key} ${min}%+`);
-  });
-  return { eligible: unmet.length === 0, unmet };
-}
 
 /* ==================================================================
    Shared UI primitives
@@ -1334,46 +1264,6 @@ function OfflineCentre({ t, settings, setSettings, packs, togglePack, profile, l
    SMS summary — everything a learner needs if the app is gone
    ================================================================== */
 
-function buildSmsSummary({ learner, aps, matched, packages, profile }) {
-  const first = learner.name.split(" ")[0];
-  const lines = [];
-
-  lines.push(`KHETHA PLAN — ${first}, Gr${learner.grade}`);
-  if (learner.grade >= 10) lines.push(`APS ${aps}`);
-
-  if (profile.careerChoice) {
-    const code = profile.careerChoice.code.join("");
-    const top = profile.careerChoice.matches.slice(0, 2).map((m) => m.title).join(", ");
-    lines.push(`Interests ${code}: ${top}`);
-  }
-  if (profile.jobFit) {
-    const jf = profile.jobFit.matches[0];
-    lines.push(`Best fit: ${jf.title} ${jf.fit}%`);
-  }
-  if (packages) {
-    lines.push(`Gr10 subjects: ${packages[0].subjects.map((s) => (SUBJECT_LABELS[s] || s).split(" ")[0]).join(", ")}`);
-  }
-
-  if (matched.length) {
-    lines.push("YOU QUALIFY FOR:");
-    matched.slice(0, 3).forEach((m, i) => {
-      const p = providerById[m.providerId];
-      lines.push(`${i + 1}. ${m.title} - ${p.name.split(" ").slice(0, 3).join(" ")} (APS${m.minAPS}, close ${m.deadline})`);
-    });
-  } else {
-    lines.push("No course matches yet - see a Khetha advisor");
-  }
-
-  const saved = profile.favourites.filter((id) => qualById[id]).slice(0, 2);
-  if (saved.length) {
-    lines.push(`Saved: ${saved.map((id) => `${qualById[id].title} (close ${qualById[id].deadline})`).join("; ")}`);
-  }
-
-  lines.push("NSFAS: apply nsfas.org.za Sep-Jan, household under R350k");
-  lines.push("Help: Khetha 086 999 0123");
-
-  return lines.join("\n");
-}
 
 function SmsSummaryModal({ learner, aps, matched, packages, profile, onClose }) {
   const [sent, setSent] = useState(false);
@@ -2683,18 +2573,6 @@ function QualDetail({ id, onBack, ctx, fav, toggleFav }) {
    ever stored or delivered. Runs on send, not on display, so the raw
    string never reaches the other learner's device. */
 
-function redact(text) {
-  let out = text;
-  const found = [];
-  REDACTION_RULES.forEach((r) => {
-    if (r.re.test(out)) {
-      found.push(r.label);
-      out = out.replace(r.re, "[removed]");
-    }
-    r.re.lastIndex = 0;
-  });
-  return { text: out, found: [...new Set(found)] };
-}
 
 function VerificationBadge({ mentor }) {
   const partner = mentor.partner ? partnerById[mentor.partner] : null;
@@ -3341,139 +3219,10 @@ function MentorWorkspace({ session, requests, setRequests, onVerify, application
    ================================================================== */
 
 /* ---- South African ID number validation --------------------------- */
-function checkSaId(raw) {
-  const id = (raw || "").replace(/\s/g, "");
-  if (!/^\d{13}$/.test(id)) return { valid: false, reason: "not 13 digits" };
-
-  const yy = +id.slice(0, 2), mm = +id.slice(2, 4), dd = +id.slice(4, 6);
-  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return { valid: false, reason: "impossible date of birth" };
-
-  /* Luhn checksum, as used by Home Affairs */
-  let sum = 0, alt = false;
-  for (let i = id.length - 1; i >= 0; i--) {
-    let n = +id[i];
-    if (alt) { n *= 2; if (n > 9) n -= 9; }
-    sum += n; alt = !alt;
-  }
-  if (sum % 10 !== 0) return { valid: false, reason: "checksum fails" };
-
-  const citizen = +id[10];
-  if (citizen > 1) return { valid: false, reason: "invalid citizenship digit" };
-
-  const nowYY = new Date().getFullYear() % 100;
-  const century = yy <= nowYY ? 2000 : 1900;
-  const age = new Date().getFullYear() - (century + yy);
-
-  return { valid: true, age, citizen: citizen === 0 ? "SA citizen" : "permanent resident" };
-}
 
 
 
 /* ---- The flag engine ---------------------------------------------- */
-function riskFlags(app) {
-  const flags = [];
-  const push = (level, title, detail) => flags.push({ level, title, detail });
-
-  const email = (app.workEmail || "").trim();
-  const name = (app.fullName || "").trim().toLowerCase();
-  const surname = name.split(/\s+/).slice(-1)[0] || "";
-
-  /* Identity */
-  const id = checkSaId(app.idNumber);
-  if (app.idNumber && !id.valid && !/^[A-Z0-9]{6,12}$/i.test((app.idNumber || "").trim())) {
-    push("high", "ID number does not validate", `The number ${id.reason}. A real SA ID passes a checksum — a fabricated one almost never does.`);
-  }
-  if (id.valid && id.age !== undefined) {
-    if (id.age < 18) {
-      push("high", "Applicant is under 18", `The ID gives an age of ${id.age}. Under-18s cannot hold a mentor account that contacts other minors unsupervised.`);
-    } else if (id.age < 20 && app.role !== "mentor") {
-      push("medium", "Age sits oddly against the claim", `Age ${id.age} against a claim of professional experience. Ask how long they have been working.`);
-    }
-    if (id.age > 75) {
-      push("low", "Unusual age for the claimed role", `Age ${id.age}. Not disqualifying, but worth a question.`);
-    }
-  }
-  if (!app.idDoc) {
-    push("high", "No ID document uploaded", "Everything about this identity is self-declared. There is nothing to check the typed details against.");
-  }
-
-  /* Email */
-  if (!email) {
-    push("medium", "No work or academic email", "A free-standing claim of employment with no institutional address behind it.");
-  } else if (FREE_EMAIL.test(email)) {
-    push("high", "Free email used as a work address", `${email} is a personal provider. Anyone can create one in a minute under any name.`);
-  } else {
-    const domain = email.split("@")[1] || "";
-    const institutional = /\.(ac|edu|gov)\.za$|\.edu$/i.test(domain);
-    const claimed = (app.institution || "").toLowerCase();
-    const domainRoot = domain.split(".")[0];
-    /* An .ac.za or .gov.za address is itself the corroboration, and its short
-       form rarely resembles the institution's full name (uj.ac.za against
-       "University of Johannesburg"), so only non-institutional domains are
-       compared against the stated employer. */
-    if (!institutional && claimed && domainRoot) {
-      const words = claimed.split(/\s+/).filter((w) => w.length > 3);
-      const acronym = claimed.split(/\s+/).map((w) => w[0]).join("");
-      const matches = words.some((w) => domainRoot.includes(w.slice(0, 4)) || w.includes(domainRoot))
-        || acronym.includes(domainRoot) || domainRoot.includes(acronym);
-      if (!matches) {
-        push("medium", "Email domain does not match the stated employer",
-          `They claim ${app.institution} but write from ${domain}, which is not an institutional address.`);
-      }
-    }
-    const local = (email.split("@")[0] || "").toLowerCase();
-    if (!institutional && surname.length > 3 && !local.includes(surname.slice(0, 4)) && !/^\d/.test(local)) {
-      push("low", "Email does not carry the applicant's surname",
-        `${local}@ against the surname "${surname}". Common with shared addresses, but also with borrowed ones.`);
-    }
-  }
-
-  /* Credentials */
-  if (app.licenceBody && app.licenceBody !== "none") {
-    const fmt = LICENCE_FORMATS[app.licenceBody];
-    const num = (app.licenceNumber || "").trim();
-    if (!num) {
-      push("high", "Registration body claimed with no number", `They selected ${app.licenceBody.toUpperCase()} but supplied nothing to check.`);
-    } else if (fmt && !fmt.re.test(num)) {
-      push("high", "Registration number is the wrong shape", `${fmt.hint}. "${num}" does not match, so it cannot be looked up on the council register.`);
-    } else {
-      push("low", "Registration number needs a register check", `Format is right. Confirm ${num} on the ${app.licenceBody.toUpperCase()} register before approving.`);
-    }
-  } else if (app.claimsTeacher) {
-    push("high", "Claims to teach with no SACE registration", "Every practising educator in South Africa must be SACE registered. Its absence is the single loudest signal here.");
-  }
-
-  if (!app.transcript && !app.licenceNumber) {
-    push("medium", "No qualification evidence at all", "No transcript, no certificate, no registration number. The stated qualification rests entirely on their word.");
-  }
-
-  if (app.partnerCode && !app.partnerName) {
-    push("high", "Partner access code is not recognised", `"${app.partnerCode}" is not on the issued list. Either mistyped, expired, or invented.`);
-  }
-
-  /* Behavioural */
-  if (app.linkedin && !/linkedin\.com\/in\//i.test(app.linkedin)) {
-    push("low", "LinkedIn link is not a profile URL", "Points somewhere other than a personal profile page.");
-  }
-  if (!app.linkedin && app.role === "professional") {
-    push("low", "No LinkedIn profile", "Most working professionals have one. Its absence is weak on its own.");
-  }
-  if (app.submitSeconds !== undefined && app.submitSeconds < 45) {
-    push("medium", "Application completed unusually fast",
-      `Submitted in ${app.submitSeconds} seconds. Genuine applicants stop to find documents; prepared fakes paste from a script.`);
-  }
-  if (app.duplicateOf) {
-    push("high", "Matches an existing account", `The same ID or email is already on file as ${app.duplicateOf}. Duplicate accounts are how a rejected applicant returns.`);
-  }
-  if (app.subjectMismatch) {
-    push("medium", "Offers subjects outside their stated field",
-      `Qualified in ${app.field}, offering ${app.subjectMismatch}. Ask what qualifies them for it.`);
-  }
-
-  const score = flags.reduce((a, f) => a + (f.level === "high" ? 3 : f.level === "medium" ? 1 : 0), 0);
-  const verdict = score >= 6 ? "high" : score >= 3 ? "medium" : flags.length ? "low" : "clear";
-  return { flags, score, verdict };
-}
 
 
 
@@ -3717,8 +3466,6 @@ function AdminApprovals({ applications, setApplications }) {
    ================================================================== */
 
 
-const fmt = (n) => n.toLocaleString("en-ZA");
-const pct = (n) => `${Math.round(n * 100)}%`;
 
 function StatCard({ label, value, sub, color = THEME.primary, icon: Icon }) {
   return (
