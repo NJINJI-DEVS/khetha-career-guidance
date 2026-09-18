@@ -156,7 +156,7 @@ export default function NjinjiCareerGuidance() {
     status: profileStatus, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
   } = useMatriculantProfile({ enabled: !!session && role === "student" });
   const hasProfile = profileStatus === 'ready';
-  const isMentorOrAdmin = !!session && !isStudent;
+  const isMentorOrAdmin = !!session && role !== "student";
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
     useHelpRequests({ enabled: !!session && (isMentorOrAdmin || hasProfile) });
