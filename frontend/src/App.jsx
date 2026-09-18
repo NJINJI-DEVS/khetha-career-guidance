@@ -36,6 +36,7 @@ import { OfflineCentre } from './components/learner/OfflineCentre';
 import { Dashboard } from './components/learner/Dashboard';
 import { SubjectChooser } from './components/learner/SubjectChooser';
 import { SubjectEvaluation } from './components/learner/SubjectEvaluation';
+import { CvWizard } from './components/cv/CvWizard';
 import { Questionnaire } from './components/learner/Questionnaire';
 import { ApsCalculator } from './components/learner/ApsCalculator';
 import { ToolsHub } from './components/learner/ToolsHub';
@@ -542,6 +543,9 @@ export default function NjinjiCareerGuidance() {
     if (route === "tool:chooser")
       return <SubjectChooser onBack={() => setRoute(null)} saved={profile.subjectResult} go={go}
         onSave={(r) => setProfile((p) => ({ ...p, subjectResult: r }))} />;
+    if (route === "tool:cv")
+      return <CvWizard onBack={() => setRoute(null)} learner={learner}
+        subjects={subjects} favourites={profile.favourites} />;
     if (route === "tool:evaluate")
       return <SubjectEvaluation subjects={subjects} mathsIsPure={mathsIsPure}
         onBack={() => setRoute(null)} go={go} />;

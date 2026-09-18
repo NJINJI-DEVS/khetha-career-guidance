@@ -5,3 +5,106 @@
 html, body, #root {
   height: 100%;
 }
+
+/* ==========================================================================
+   CV document styling
+   --------------------------------------------------------------------------
+   Kept in plain CSS rather than Tailwind utilities because these same rules
+   have to survive into the print stylesheet, where Tailwind's preflight and the
+   app's own !important utilities would otherwise interfere.
+
+   Units are in millimetres and points: this is a document that gets printed on
+   A4 and read by a parser, not a screen layout.
+   ========================================================================== */
+
+.cv-doc {
+  background: #fff;
+  color: #111;
+  padding: 14mm 15mm;
+  max-width: 210mm;
+  margin: 0 auto;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+.cv-classic { font-family: Georgia, "Times New Roman", serif; }
+.cv-modern  { font-family: "Helvetica Neue", Arial, sans-serif; }
+
+.cv-head { margin-bottom: 6mm; }
+.cv-classic .cv-head { text-align: center; }
+.cv-modern  .cv-head { text-align: left; }
+
+.cv-name {
+  font-size: 19pt;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0 0 1.5mm;
+}
+.cv-modern .cv-name { letter-spacing: -0.01em; }
+
+.cv-contact { margin: 0; font-size: 9.5pt; color: #444; }
+
+.cv-section { margin-top: 5mm; }
+
+.cv-heading {
+  font-size: 10.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 2mm;
+  padding-bottom: 1mm;
+  border-bottom: 1px solid #999;
+}
+.cv-modern .cv-heading {
+  border-bottom-width: 2px;
+  border-bottom-color: #111;
+  letter-spacing: 0.05em;
+}
+
+.cv-stack > * + * { margin-top: 3.5mm; }
+.cv-entry-title { margin: 0; font-weight: 700; font-size: 10.5pt; }
+.cv-entry-meta  { margin: 0.5mm 0 0; font-size: 9.5pt; color: #555; }
+.cv-para        { margin: 1.5mm 0 0; }
+.cv-label       { font-weight: 700; }
+
+.cv-bullets { margin: 1.5mm 0 0; padding-left: 5mm; }
+.cv-bullets li { margin-bottom: 1mm; }
+
+/* --------------------------------------------------------------------------
+   Print — this IS the PDF export.
+   --------------------------------------------------------------------------
+   Deliberately not html2canvas or html2pdf. Those rasterise the page, and an
+   image of a CV contains no selectable text, so an applicant tracking system
+   extracts nothing from it. A CV that parses as blank is worse than no CV.
+   Printing to PDF keeps real vector text, needs no dependency, adds nothing to
+   the bundle, and works offline on a low-end phone.
+
+   Everything except the document itself is removed from the printed page.
+   -------------------------------------------------------------------------- */
+@media print {
+  @page { size: A4; margin: 0; }
+
+  html, body { height: auto; background: #fff; }
+
+  body * { visibility: hidden; }
+  .cv-print-root, .cv-print-root * { visibility: visible; }
+
+  .cv-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+
+  .cv-doc {
+    max-width: none;
+    margin: 0;
+    box-shadow: none;
+    padding: 14mm 15mm;
+  }
+
+  /* Never split an entry across a page break mid-thought. */
+  .cv-entry, .cv-section { break-inside: avoid; page-break-inside: avoid; }
+  .cv-heading { break-after: avoid; page-break-after: avoid; }
+
+  .cv-no-print { display: none !important; }
+}
