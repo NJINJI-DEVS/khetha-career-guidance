@@ -40,12 +40,12 @@ jobs:
       - name: Deploy to cPanel via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           local-dir: ./frontend/dist/
-          server-dir: ${{ secrets.CPANEL_FTP_TARGET_DIR }}
+          server-dir: ${{ secrets.FTP_DIR }}
           # Left off deliberately. This mirrors local-dir onto server-dir and
           # DELETES anything on the server that isn't in local-dir — correct
           # long-term (Vite content-hashes every JS/CSS filename per build,
