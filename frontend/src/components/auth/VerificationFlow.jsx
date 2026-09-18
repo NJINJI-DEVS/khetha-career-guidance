@@ -1,7 +1,8 @@
 // Extracted from App.jsx (Stage 5 of the App.jsx split — see
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { THEME } from '../../theme/tokens';
 import { ROLES, PARTNER_CODES, LICENCE_BODIES } from '../../data/roles';
 import { ModalShell } from '../ui/ModalShell';
@@ -19,6 +20,9 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
     partnerCode: "", transcript: null,
   });
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
+  const startedAt = useRef(Date.now());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const idOk = f.fullName.trim().length > 3 &&
     (/^\d{13}$/.test(f.idNumber.replace(/\s/g, "")) || /^[A-Z0-9]{6,12}$/i.test(f.idNumber.trim())) &&
@@ -165,16 +169,34 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
         </div>
       )}
 
+      {error && (
+        <p className="mt-2 flex items-start gap-1.5 text-xs k-tx-9B1C14">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{error}
+        </p>
+      )}
+
       <div className="mt-4 flex gap-2">
         {step > 1 && (
-          <button onClick={() => setStep(step - 1)}
-            className="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-900">Back</button>
+          <button onClick={() => setStep(step - 1)} disabled={busy}
+            className="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-900 k-dis-tx">Back</button>
         )}
         <button
-          onClick={() => (step < 3 ? setStep(step + 1) : onComplete({ ...f, tiers, partnerName }))}
-          disabled={(step === 1 && !idOk) || (step === 2 && !credOk)}
+          onClick={async () => {
+            if (step < 3) { setStep(step + 1); return; }
+            setError(""); setBusy(true);
+            try {
+              await onComplete({
+                ...f, tiers, partnerName,
+                submitSeconds: Math.round((Date.now() - startedAt.current) / 1000),
+              });
+            } catch (err) {
+              setError(err.message || "Couldn't submit your application. Try again.");
+              setBusy(false);
+            }
+          }}
+          disabled={(step === 1 && !idOk) || (step === 2 && !credOk) || busy}
           className="flex-1 rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
-          {step < 3 ? "Continue" : "Submit for verification"}
+          {busy ? "Submitting…" : step < 3 ? "Continue" : "Submit for verification"}
         </button>
       </div>
       {step === 2 && !credOk && (

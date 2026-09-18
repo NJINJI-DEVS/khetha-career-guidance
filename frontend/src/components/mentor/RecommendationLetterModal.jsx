@@ -2,16 +2,18 @@
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { ModalShell } from '../ui/ModalShell';
 import { TierBadges } from '../ui/TierBadges';
 
 export function RecommendationLetterModal({ request, session, onClose, onIssue }) {
   const [strength, setStrength] = useState("strong");
   const [body, setBody] = useState(
-    `I have worked with ${request.from} on ${request.subject} and can speak to both the work and the circumstances behind the marks. `
+    `I have worked with ${request.learnerName} on ${request.subject} and can speak to both the work and the circumstances behind the marks. `
   );
   const [issued, setIssued] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const mentorName = session.verification?.fullName || "Verified mentor";
   const tiers = session.verification?.tiers || [];
@@ -28,7 +30,7 @@ export function RecommendationLetterModal({ request, session, onClose, onIssue }
       <ModalShell title="Letter issued" onClose={onClose}>
         <div className="py-6 text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 k-tx-005A36" />
-          <p className="mt-3 text-sm font-semibold text-slate-900">Sent to {request.from}</p>
+          <p className="mt-3 text-sm font-semibold text-slate-900">Sent to {request.learnerName}</p>
           <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
             The letter is attached to their Khetha profile with your verification badges, a reference number and the
             issue date. They can send it with any application, and an institution can check it against the platform.
@@ -40,7 +42,7 @@ export function RecommendationLetterModal({ request, session, onClose, onIssue }
   }
 
   return (
-    <ModalShell title={`Recommendation letter for ${request.from}`} onClose={onClose} wide>
+    <ModalShell title={`Recommendation letter for ${request.learnerName}`} onClose={onClose} wide>
       <div className="space-y-3">
         <div>
           <p className="text-xs font-medium text-slate-700">Strength of recommendation</p>
@@ -68,11 +70,12 @@ export function RecommendationLetterModal({ request, session, onClose, onIssue }
           <p className="text-[10px] uppercase tracking-wide text-slate-500">Preview</p>
           <div className="mt-2 space-y-2 text-[11px] leading-relaxed text-slate-800">
             <p className="font-semibold">Khetha verified recommendation · {today}</p>
-            <p>Reference: KHE-{request.id.toUpperCase()}-{String(Date.now()).slice(-5)}</p>
+            <p className="italic text-slate-500">A reference number is generated once you issue this letter.</p>
             <p className="pt-1">To whom it may concern,</p>
             <p>{body}</p>
             <p>
-              {request.from} is in Grade {request.grade}, currently at {request.marks}, with an APS of {request.aps}.
+              {request.learnerName}{request.learnerGrade ? ` is in Grade ${request.learnerGrade},` : ""} currently at
+              {" "}{request.attachedMarksSummary}, with an APS of {request.attachedAps}.
               Their stated goal is: {request.goal}.
             </p>
             <p>
@@ -91,9 +94,22 @@ export function RecommendationLetterModal({ request, session, onClose, onIssue }
         </p>
       </div>
 
-      <button onClick={() => { onIssue(request.id); setIssued(true); }} disabled={body.trim().length < 40}
+      {error && (
+        <p className="mt-2 flex items-start gap-1.5 text-xs k-tx-9B1C14">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{error}
+        </p>
+      )}
+
+      <button
+        onClick={async () => {
+          setError(""); setBusy(true);
+          try { await onIssue(strength, body); setIssued(true); }
+          catch (err) { setError(err.message || "Couldn't issue this letter. Try again."); }
+          finally { setBusy(false); }
+        }}
+        disabled={body.trim().length < 40 || busy}
         className="mt-4 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
-        Issue letter
+        {busy ? "Issuing…" : "Issue letter"}
       </button>
     </ModalShell>
   );

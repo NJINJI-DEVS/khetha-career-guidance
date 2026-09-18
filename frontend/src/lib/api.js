@@ -68,3 +68,60 @@ export const searchSaqa = (q) =>
 
 export const searchOfo = (q) =>
   apiFetch(`/api/qualifications/ofo${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+
+// --- Mentor hub ---
+
+export const listMentors = ({ field, province, q } = {}) => {
+  const params = new URLSearchParams();
+  if (field) params.set('field', field);
+  if (province) params.set('province', province);
+  if (q) params.set('q', q);
+  const qs = params.toString();
+  return apiFetch(`/api/mentors${qs ? `?${qs}` : ''}`);
+};
+
+export const submitMentorApplication = (application) =>
+  apiFetch('/api/mentorapplications', { method: 'POST', body: JSON.stringify(application) });
+
+export const getMyMentorApplications = () => apiFetch('/api/mentorapplications/me');
+
+export const getPendingMentorApplications = () => apiFetch('/api/mentorapplications/pending');
+
+export const approveMentorApplication = (id) =>
+  apiFetch(`/api/mentorapplications/${id}/approve`, { method: 'POST' });
+
+export const rejectMentorApplication = (id) =>
+  apiFetch(`/api/mentorapplications/${id}/reject`, { method: 'POST' });
+
+export const createHelpRequest = (request) =>
+  apiFetch('/api/helprequests', { method: 'POST', body: JSON.stringify(request) });
+
+export const getMyHelpRequests = () => apiFetch('/api/helprequests/mine');
+
+export const respondToHelpRequest = (id, accept) =>
+  apiFetch(`/api/helprequests/${id}/respond`, { method: 'POST', body: JSON.stringify({ accept }) });
+
+export const getMessagesForRequest = (helpRequestId) =>
+  apiFetch(`/api/messages/for-request/${helpRequestId}`);
+
+export const sendMessage = (helpRequestId, body) =>
+  apiFetch('/api/messages/send', { method: 'POST', body: JSON.stringify({ helpRequestId, body }) });
+
+export const issueRecommendationLetter = (helpRequestId, strength, body) =>
+  apiFetch('/api/recommendationletters/issue', { method: 'POST', body: JSON.stringify({ helpRequestId, strength, body }) });
+
+export const getMyRecommendationLetters = () => apiFetch('/api/recommendationletters/for-learner/mine');
+
+// --- Notifications ---
+
+export const getMyNotifications = () => apiFetch('/api/notifications/mine');
+
+export const markNotificationRead = (id) =>
+  apiFetch(`/api/notifications/${id}/mark-read`, { method: 'POST' });
+
+export const markAllNotificationsRead = () =>
+  apiFetch('/api/notifications/mark-all-read', { method: 'POST' });
+
+// --- Admin analytics ---
+
+export const getAdminAnalytics = () => apiFetch('/api/admin/analytics');

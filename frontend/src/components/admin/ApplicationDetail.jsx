@@ -1,39 +1,49 @@
-// Extracted from App.jsx (Stage 5 of the App.jsx split — see
-// plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
-
-import { useState, useMemo } from 'react';
+// Wired to the real backend: riskScore/riskVerdict/riskFlags are computed once,
+// server-side, at submission time (RiskFlagsService, inside
+// MentorApplicationsController.Submit) and never recomputed here. The mock's
+// "Request more info" action and its persisted reviewer note are dropped — the
+// real MentorApplicationsController only exposes approve/reject, and
+// MentorApplication has no note field to persist one in.
+import { useState } from 'react';
 import { ROLES } from '../../data/roles';
 import { VERDICT_STYLE, LEVEL_STYLE } from '../../data/verdictStyles';
-import { riskFlags } from '../../engines/riskFlags';
 import { checkSaId } from '../../engines/saId';
 import { Screen } from '../ui/Screen';
 import { Pill } from '../ui/Pill';
 import { SectionTitle } from '../ui/SectionTitle';
 
 /* ---- Application detail ------------------------------------------- */
-export function ApplicationDetail({ app, onBack, onDecide }) {
-  const { flags, verdict } = useMemo(() => riskFlags(app), [app]);
+export function ApplicationDetail({ app, onBack, onApprove, onReject }) {
   const id = checkSaId(app.idNumber);
-  const [note, setNote] = useState("");
-  const v = VERDICT_STYLE[verdict];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const v = VERDICT_STYLE[app.riskVerdict] || VERDICT_STYLE.clear;
+  const flags = app.riskFlags || [];
 
   const rows = [
     ["Full name", app.fullName],
     ["ID / passport", app.idNumber ? `${app.idNumber.slice(0, 6)}••••${app.idNumber.slice(-3)}` : "—"],
     ["ID validation", id.valid ? `Passes checksum · ${id.citizen} · age ${id.age}` : `Fails — ${id.reason}`],
-    ["ID document", app.idDoc || "Not supplied"],
+    ["ID document", app.idDocumentFilename || "Not supplied"],
     ["Work email", app.workEmail || "Not supplied"],
     ["Stated employer", app.institution || "—"],
-    ["LinkedIn", app.linkedin || "Not supplied"],
+    ["LinkedIn", app.linkedIn || "Not supplied"],
     ["Registration", app.licenceBody !== "none" ? `${app.licenceBody.toUpperCase()} ${app.licenceNumber || "— none given"}` : "None claimed"],
     ["Partner code", app.partnerCode ? `${app.partnerCode}${app.partnerName ? ` (${app.partnerName})` : " — unrecognised"}` : "None"],
-    ["Transcript", app.transcript || "Not supplied"],
+    ["Transcript", app.transcriptFilename || "Not supplied"],
     ["Subjects offered", (app.subjects || []).join(", ")],
     ["Time to complete", app.submitSeconds !== undefined ? `${app.submitSeconds} seconds` : "—"],
   ];
 
+  const act = async (fn) => {
+    setError(""); setBusy(true);
+    try { await fn(); }
+    catch (err) { setError(err.message || "Couldn't record that decision. Try again."); setBusy(false); }
+  };
+
   return (
-    <Screen onBack={onBack} title={app.fullName} subtitle={`${ROLES[app.role].label} · submitted ${app.submitted}`}>
+    <Screen onBack={onBack} title={app.fullName}
+      subtitle={`${ROLES[app.role]?.label || app.role} · submitted ${new Date(app.submittedAt).toLocaleDateString("en-ZA")}`}>
       <div className="rounded-2xl border p-4" style={{ borderColor: v.color }}>
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -86,33 +96,28 @@ export function ApplicationDetail({ app, onBack, onDecide }) {
 
       {app.status === "pending" ? (
         <>
-          <div className="mt-4">
-            <label htmlFor="dec-note" className="text-xs font-medium text-slate-700">Reviewer note</label>
-            <textarea id="dec-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)}
-              placeholder="What you checked, and what decided it. This is kept on the record."
-              className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 k-fb-00784A focus:outline-none focus-visible:ring-2 k-fvr-D4AF37" />
-          </div>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <button onClick={() => onDecide(app.id, "approved", note)}
-              className="rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white">Approve</button>
-            <button onClick={() => onDecide(app.id, "more-info", note)}
-              className="rounded-xl k-bg-D4AF37 py-3 text-sm font-semibold text-slate-900">Request more</button>
-            <button onClick={() => onDecide(app.id, "rejected", note)}
-              className="rounded-xl k-bg-B3261E py-3 text-sm font-semibold text-white">Reject</button>
+          {error && <p className="mt-3 text-xs k-tx-9B1C14">{error}</p>}
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button disabled={busy} onClick={() => act(() => onApprove())}
+              className="rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">Approve</button>
+            <button disabled={busy} onClick={() => act(() => onReject())}
+              className="rounded-xl k-bg-B3261E py-3 text-sm font-semibold text-white k-dis">Reject</button>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-600">
-            Approving grants contact with learners. Requesting more keeps the account dormant and tells the applicant
-            exactly what is missing, which is the right call whenever the paperwork is thin rather than suspicious.
+            Approving grants contact with learners and lists them in the mentor directory. Rejecting does not, and
+            the applicant can reapply.
           </p>
         </>
       ) : (
         <div className="mt-4 rounded-2xl bg-slate-50 p-4">
           <p className="text-xs font-semibold text-slate-900">
-            {app.status === "approved" ? "Approved" : app.status === "rejected" ? "Rejected" : "More information requested"}
+            {app.status === "approved" ? "Approved" : "Rejected"}
           </p>
-          {app.decidedOn && <p className="mt-0.5 text-[11px] text-slate-600">{app.decidedBy} · {app.decidedOn}</p>}
-          {app.note && <p className="mt-1.5 text-[11px] leading-relaxed text-slate-700">{app.note}</p>}
+          {app.decidedAt && (
+            <p className="mt-0.5 text-[11px] text-slate-600">
+              An administrator · {new Date(app.decidedAt).toLocaleDateString("en-ZA")}
+            </p>
+          )}
         </div>
       )}
     </Screen>

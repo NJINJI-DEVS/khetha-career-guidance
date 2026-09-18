@@ -1,60 +1,9 @@
 // Extracted from App.jsx (Stage 1 of the App.jsx split — see
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
-
-export const SEED_APPLICATIONS = [
-  {
-    id: "a1", role: "mentor", status: "pending", submitted: "3 hours ago",
-    fullName: "Lerato Mokoena", idNumber: "9202204800083", idDoc: "id-document.pdf",
-    workEmail: "l.mokoena@wits.ac.za", institution: "University of the Witwatersrand",
-    linkedin: "linkedin.com/in/leratomokoena", licenceBody: "none", licenceNumber: "",
-    partnerCode: "IKAMVA-2027", partnerName: "IkamvaYouth", transcript: "academic-transcript.pdf",
-    field: "Mathematics and Physical Sciences", subjects: ["Mathematics", "Physical Sciences"],
-    claim: "BSc Actuarial Science, 3rd year, Wits. Tutoring through IkamvaYouth since 2025.",
-    submitSeconds: 412,
-  },
-  {
-    id: "a2", role: "professional", status: "pending", submitted: "1 day ago",
-    fullName: "Marius van Wyk", idNumber: "8804125800081", idDoc: null,
-    workEmail: "mariusvw92@gmail.com", institution: "Independent consultant",
-    linkedin: "", licenceBody: "ecsa", licenceNumber: "ENG-2024",
-    partnerCode: "", partnerName: null, transcript: null,
-    field: "Engineering", subjects: ["Mathematics", "Physical Sciences", "Life Sciences"],
-    subjectMismatch: "Life Sciences",
-    claim: "15 years as a consulting engineer. Happy to mentor learners one-on-one, evenings and weekends.",
-    submitSeconds: 38,
-  },
-  {
-    id: "a3", role: "mentor", status: "pending", submitted: "2 days ago",
-    fullName: "Nomvula Zikode", idNumber: "0104125012088", idDoc: "id-card.jpg",
-    workEmail: "nomvula.z@swgc.edu.za", institution: "South West Gauteng TVET College",
-    linkedin: "linkedin.com/in/nomvula-zikode", licenceBody: "sace", licenceNumber: "20241887",
-    partnerCode: "TVET-SRC-2027", partnerName: "TVET College SRC Tutor Corps",
-    transcript: "diploma-certificate.pdf",
-    field: "Business Studies", subjects: ["Accounting", "Business Studies"],
-    claim: "Student support officer at SWGC. SACE registered, previously taught Grade 10 Accounting.",
-    submitSeconds: 260,
-  },
-  {
-    id: "a4", role: "professional", status: "pending", submitted: "2 days ago",
-    fullName: "Dr T Mahlangu", idNumber: "7712310000000", idDoc: null,
-    workEmail: "drmahlangu@medicalcareers-sa.co", institution: "Private practice",
-    linkedin: "facebook.com/drmahlangu", licenceBody: "hpcsa", licenceNumber: "999",
-    partnerCode: "MEDIC-2027", partnerName: null, transcript: null,
-    field: "Health Sciences", subjects: ["Life Sciences"],
-    claim: "Doctor offering one-on-one guidance to matriculants applying for medicine. Can meet learners privately.",
-    submitSeconds: 22, duplicateOf: "a rejected application from August",
-  },
-  {
-    id: "a5", role: "mentor", status: "approved", submitted: "6 days ago",
-    fullName: "Thabo Sithole", idNumber: "0308115012087", idDoc: "id-document.pdf",
-    workEmail: "t.sithole@uj.ac.za", institution: "University of Johannesburg",
-    linkedin: "linkedin.com/in/thabosithole", licenceBody: "none", licenceNumber: "",
-    partnerCode: "KUTL-2027", partnerName: "Kutlwanong Centre for Maths, Science & Technology",
-    transcript: "transcript.pdf", field: "Accounting", subjects: ["Accounting", "Business Studies"],
-    claim: "BCom Accounting 2nd year, UJ. Kutlwanong alumnus, now tutoring for them.",
-    submitSeconds: 330, decidedBy: "DHET verification team", decidedOn: "11 September 2026",
-  },
-];
+// The seeded SEED_APPLICATIONS array that used to live here was removed when
+// AdminApprovals/ApplicationDetail were wired to the real
+// MentorApplicationsController — VETTING_GUIDE is static editorial content,
+// not activity data, so it stays.
 
 export const VETTING_GUIDE = [
   {

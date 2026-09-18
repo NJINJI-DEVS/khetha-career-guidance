@@ -2,7 +2,7 @@
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { SUBJECT_LABELS } from '../../data/subjects';
 import { ModalShell } from '../ui/ModalShell';
 
@@ -12,6 +12,8 @@ export function RequestLetterModal({ mentor, learner, aps, onClose, onSend }) {
   const [subject, setSubject] = useState(mentor.subjects[0]);
   const [need, setNeed] = useState("");
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const marksLine = learner.subjects
     ? learner.subjects.filter((s) => !s.excluded).slice(0, 3).map((s) => `${s.label} ${s.pct}%`).join(", ")
@@ -25,7 +27,7 @@ export function RequestLetterModal({ mentor, learner, aps, onClose, onSend }) {
       <ModalShell onClose={onClose} title="Request sent">
         <div className="py-6 text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 k-tx-005A36" />
-          <p className="mt-3 text-sm font-semibold text-slate-900">Your letter is with {mentor.name}</p>
+          <p className="mt-3 text-sm font-semibold text-slate-900">Your letter is with {mentor.fullName}</p>
           <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
             Mentors have three working days to accept or decline. You will get a notification either way, and you can
             send a request to another mentor in the meantime.
@@ -40,7 +42,7 @@ export function RequestLetterModal({ mentor, learner, aps, onClose, onSend }) {
   }
 
   return (
-    <ModalShell onClose={onClose} title={`Help request to ${mentor.name}`}>
+    <ModalShell onClose={onClose} title={`Help request to ${mentor.fullName}`}>
       <p className="text-xs leading-relaxed text-slate-600">
         Mentors receive a structured letter rather than a chat message, so they can judge quickly whether they are the
         right person. Your marks and APS are attached automatically.
@@ -78,9 +80,22 @@ export function RequestLetterModal({ mentor, learner, aps, onClose, onSend }) {
         </div>
       </div>
 
-      <button onClick={() => { onSend({ mentor, goal, subject, need }); setSent(true); }} disabled={!valid}
+      {error && (
+        <p className="mt-2 flex items-start gap-1.5 text-xs k-tx-9B1C14">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{error}
+        </p>
+      )}
+
+      <button
+        onClick={async () => {
+          setError(""); setBusy(true);
+          try { await onSend({ mentor, goal, subject, need }); setSent(true); }
+          catch (err) { setError(err.message || "Couldn't send your request. Try again."); }
+          finally { setBusy(false); }
+        }}
+        disabled={!valid || busy}
         className="mt-4 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
-        Send request letter
+        {busy ? "Sending…" : "Send request letter"}
       </button>
       {!valid && (
         <p className="mt-2 text-center text-[11px] text-slate-600">

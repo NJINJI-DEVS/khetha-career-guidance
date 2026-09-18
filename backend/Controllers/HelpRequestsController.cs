@@ -30,15 +30,15 @@ public class HelpRequestsController : ControllerBase
     /// APS/marks are snapshotted server-side from the caller's own matriculant
     /// profile, not accepted from the client.</summary>
     [HttpPost]
-    public async Task<ActionResult<HelpRequest>> Create([FromBody] HelpRequest input, CancellationToken ct)
+    public async Task<ActionResult<HelpRequestDto>> Create([FromBody] HelpRequest input, CancellationToken ct)
     {
         var matriculant = await _db.Matriculants.Include(m => m.Subjects)
             .FirstOrDefaultAsync(m => m.UserId == CurrentUserId, ct);
         if (matriculant is null)
             return BadRequest(new { error = "Create your learner profile before sending a help request." });
 
-        var mentorExists = await _db.Mentors.AnyAsync(m => m.Id == input.MentorId && m.IsActive, ct);
-        if (!mentorExists) return NotFound(new { error = "Mentor not found." });
+        var mentor = await _db.Mentors.FirstOrDefaultAsync(m => m.Id == input.MentorId && m.IsActive, ct);
+        if (mentor is null) return NotFound(new { error = "Mentor not found." });
 
         var apsResult = _apsCalculator.Calculate(new ApsCalculationRequest(
             matriculant.Subjects.Select(s => new SubjectScoreDto(s.SubjectName, s.Percentage, s.IsHomeLanguage)).ToList()));
@@ -54,7 +54,6 @@ public class HelpRequestsController : ControllerBase
 
         _db.HelpRequests.Add(input);
 
-        var mentor = await _db.Mentors.FirstAsync(m => m.Id == input.MentorId, ct);
         _db.Notifications.Add(new Notification
         {
             UserId = mentor.UserId,
@@ -64,26 +63,46 @@ public class HelpRequestsController : ControllerBase
         });
 
         await _db.SaveChangesAsync(ct);
-        return CreatedAtAction(nameof(GetMine), new { }, input);
+        return CreatedAtAction(nameof(GetMine), new { }, ToDto(input, matriculant, mentor, hasLetter: false));
     }
 
     [HttpGet("mine")]
-    public async Task<ActionResult<List<HelpRequest>>> GetMine(CancellationToken ct)
+    public async Task<ActionResult<List<HelpRequestDto>>> GetMine(CancellationToken ct)
     {
         var matriculant = await _db.Matriculants.FirstOrDefaultAsync(m => m.UserId == CurrentUserId, ct);
         var mentor = await _db.Mentors.FirstOrDefaultAsync(m => m.UserId == CurrentUserId, ct);
 
-        var query = _db.HelpRequests.Where(h =>
-            (matriculant != null && h.MatriculantId == matriculant.Id) ||
-            (mentor != null && h.MentorId == mentor.Id));
+        var mine = await _db.HelpRequests
+            .Where(h => (matriculant != null && h.MatriculantId == matriculant.Id) ||
+                        (mentor != null && h.MentorId == mentor.Id))
+            .OrderByDescending(h => h.SentAt)
+            .ToListAsync(ct);
 
-        var mine = await query.OrderByDescending(h => h.SentAt).ToListAsync(ct);
-        return Ok(mine);
+        if (mine.Count == 0) return Ok(new List<HelpRequestDto>());
+
+        var matriculantIds = mine.Select(h => h.MatriculantId).Distinct().ToList();
+        var mentorIds = mine.Select(h => h.MentorId).Distinct().ToList();
+        var requestIds = mine.Select(h => h.Id).ToList();
+
+        var matriculants = await _db.Matriculants.Where(m => matriculantIds.Contains(m.Id)).ToListAsync(ct);
+        var mentors = await _db.Mentors.Where(m => mentorIds.Contains(m.Id)).ToListAsync(ct);
+        var requestsWithLetters = await _db.RecommendationLetters
+            .Where(l => requestIds.Contains(l.HelpRequestId))
+            .Select(l => l.HelpRequestId)
+            .ToListAsync(ct);
+        var letterSet = requestsWithLetters.ToHashSet();
+
+        var matriculantById = matriculants.ToDictionary(m => m.Id);
+        var mentorById = mentors.ToDictionary(m => m.Id);
+
+        var dtos = mine.Select(h => ToDto(h, matriculantById.GetValueOrDefault(h.MatriculantId),
+            mentorById.GetValueOrDefault(h.MentorId), letterSet.Contains(h.Id))).ToList();
+        return Ok(dtos);
     }
 
     /// <summary>The mentor accepts or declines. Only the mentor on this request may respond.</summary>
     [HttpPost("{id}/respond")]
-    public async Task<ActionResult<HelpRequest>> Respond(Guid id, [FromBody] RespondToHelpRequestDto body, CancellationToken ct)
+    public async Task<ActionResult<HelpRequestDto>> Respond(Guid id, [FromBody] RespondToHelpRequestDto body, CancellationToken ct)
     {
         var req = await _db.HelpRequests.FirstOrDefaultAsync(h => h.Id == id, ct);
         if (req is null) return NotFound();
@@ -107,6 +126,15 @@ public class HelpRequestsController : ControllerBase
         });
 
         await _db.SaveChangesAsync(ct);
-        return Ok(req);
+        return Ok(ToDto(req, matriculant, mentor, hasLetter: false));
     }
+
+    private static HelpRequestDto ToDto(HelpRequest h, Matriculant? matriculant, Mentor? mentor, bool hasLetter) => new(
+        h.Id, h.MatriculantId, h.MentorId, h.Subject, h.Goal, h.Need, h.Status, h.SentAt, h.RespondedAt,
+        h.AttachedAps, h.AttachedMarksSummary,
+        LearnerName: matriculant?.FullName ?? "Unknown learner",
+        LearnerGrade: matriculant?.Grade,
+        MentorName: mentor?.FullName ?? "Unknown mentor",
+        HasLetter: hasLetter
+    );
 }

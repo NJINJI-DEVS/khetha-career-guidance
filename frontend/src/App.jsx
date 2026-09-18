@@ -2,9 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { THEME } from './theme/tokens';
 import { QUALIFICATIONS, qualById } from './data/qualifications';
 import { providerById } from './data/providers';
-import { SEED_REQUESTS } from './data/mentors';
 import { ROLES } from './data/roles';
-import { SEED_APPLICATIONS } from './data/seedApplications';
 import { toLevel } from './engines/levels';
 import { chooseSubjects, eligibility } from './engines/subjects';
 import { idbGet, idbSet } from './services/idb';
@@ -13,6 +11,10 @@ import { useSettings } from './context/SettingsContext';
 import { useAuth } from './context/AuthContext';
 import { useProfile } from './context/ProfileContext';
 import { useMatriculantProfile } from './hooks/useMatriculantProfile';
+import { useHelpRequests } from './hooks/useHelpRequests';
+import { useMentorApplications } from './hooks/useMentorApplications';
+import { useNotifications } from './hooks/useNotifications';
+import { submitMentorApplication } from './lib/api';
 import { Screen } from './components/ui/Screen';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
@@ -154,12 +156,29 @@ export default function NjinjiCareerGuidance() {
     status: profileStatus, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
   } = useMatriculantProfile({ enabled: !!session && role === "student" });
   const hasProfile = profileStatus === 'ready';
-  const [requests, setRequests] = useState(SEED_REQUESTS);
-  const [applications, setApplications] = useState(SEED_APPLICATIONS);
-  const [notifications, setNotifications] = useState([
-    { id: "n1", title: "NSFAS applications close soon",
-      body: "The funding window for the 2027 intake closes on 31 January.", read: false, target: "advice" },
-  ]);
+  const isMentorOrAdmin = !!session && !isStudent;
+
+  const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
+    useHelpRequests({ enabled: !!session && (isMentorOrAdmin || hasProfile) });
+  const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
+    useMentorApplications({ enabled: !!session && role === "admin", scope: "admin" });
+  const { applications: myApplications, refetch: refetchMyApplications } =
+    useMentorApplications({ enabled: !!session && (role === "mentor" || role === "professional"), scope: "mine" });
+  const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } = useNotifications({ enabled: !!session });
+  const myApplication = myApplications[0] || null;
+
+  /* Deadline/event reminders the learner triggers themselves (favouriting a
+     qualification, tapping "remind me" on an event) have no backend endpoint
+     to persist a self-authored notification — they're real, user-generated
+     content, just session-local rather than synced. Merged with the real
+     server-side notifications for display. */
+  const [localNotifications, setLocalNotifications] = useState([]);
+  const addLocalNotification = (n) => setLocalNotifications((ns) => [n, ...ns.filter((x) => x.id !== n.id)]);
+  const notifications = useMemo(
+    () => [...localNotifications, ...remoteNotifications],
+    [localNotifications, remoteNotifications]
+  );
+
   const [packs, setPacks] = useState([
     { key: "careers", label: "Careers directory", size: "1.2 MB", on: true },
     { key: "quals", label: "Qualifications and providers", size: "2.4 MB", on: true },
@@ -287,24 +306,21 @@ export default function NjinjiCareerGuidance() {
       const on = p.favourites.includes(id);
       const favourites = on ? p.favourites.filter((x) => x !== id) : [...p.favourites, id];
       if (!on && qualById[id] && settings.notifyDeadlines) {
-        setNotifications((n) => [
-          { id: `d-${id}`, title: `${qualById[id].title} closes ${qualById[id].deadline}`,
-            body: "We'll remind you two weeks and three days before.", read: false, target: `qual:${id}` },
-          ...n.filter((x) => x.id !== `d-${id}`),
-        ]);
+        addLocalNotification({ id: `d-${id}`, title: `${qualById[id].title} closes ${qualById[id].deadline}`,
+          body: "We'll remind you two weeks and three days before.", read: false, target: `qual:${id}` });
       }
       return { ...p, favourites };
     });
   };
 
   const remindEvent = (e) =>
-    setNotifications((n) => [
-      { id: `e-${e.id}`, title: e.title, body: `${e.date} · ${e.venue}`, read: false, target: "advice" },
-      ...n.filter((x) => x.id !== `e-${e.id}`),
-    ]);
+    addLocalNotification({ id: `e-${e.id}`, title: e.title, body: `${e.date} · ${e.venue}`, read: false, target: "advice" });
 
   const unread = notifications.filter((n) => !n.read).length;
-  const markAllRead = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+  const markAllRead = () => {
+    setLocalNotifications((n) => n.map((x) => ({ ...x, read: true })));
+    markAllNotificationsRead();
+  };
 
   const a11yCss = `
     @keyframes njinji-scan { from { top: 15%; } to { top: 78%; } }
@@ -413,15 +429,14 @@ export default function NjinjiCareerGuidance() {
       {session && (!isStudent || hasProfile) && route && renderOverlay()}
 
       {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
-        <AdminApprovals applications={applications} setApplications={setApplications} />
+        <AdminApprovals applications={applications} onApprove={approveApplication} onReject={rejectApplication} />
       )}
 
-      {session && (!isStudent || hasProfile) && !route && tab === "analytics" && <AdminAnalytics liveAps={aps} />}
+      {session && (!isStudent || hasProfile) && !route && tab === "analytics" && <AdminAnalytics />}
 
       {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
-        <MentorWorkspace session={session} requests={requests} setRequests={setRequests}
-          application={applications.find((a) => a.id === session.applicationId) || null}
-          onVerify={() => setVerifying(true)} />
+        <MentorWorkspace session={session} requests={requests} onRespond={respondToHelpRequest}
+          onIssueLetter={issueLetter} application={myApplication} onVerify={() => setVerifying(true)} />
       )}
 
       {session && hasProfile && !route && tab === "dashboard" && (
@@ -473,8 +488,8 @@ export default function NjinjiCareerGuidance() {
       {session && !route && tab === "mentors" && isStudent && hasProfile && (
         <MentorHub learner={learner} aps={learner.grade === 9 ? null : aps}
           requests={requests}
-          setRequests={(updater) => {
-            setRequests(updater);
+          onCreateRequest={async (request) => {
+            await createHelpRequest(request);
             setProfile((p) => (p.requestSent ? p : { ...p, requestSent: true }));
           }} />
       )}
@@ -506,18 +521,28 @@ export default function NjinjiCareerGuidance() {
       {verifying && (
         <VerificationFlow role={role}
           onCancel={() => setVerifying(false)}
-          onComplete={(v) => {
-            const appId = `a-${Date.now()}`;
-            setApplications((as) => [{
-              id: appId, role, status: "pending", submitted: "just now",
-              fullName: v.fullName, idNumber: v.idNumber, idDoc: v.idDoc,
-              workEmail: v.workEmail, institution: v.institution || "",
-              linkedin: v.linkedin, licenceBody: v.licenceBody, licenceNumber: v.licenceNumber,
-              partnerCode: v.partnerCode, partnerName: v.partnerName, transcript: v.transcript,
-              field: "", subjects: [], claim: "Submitted through the in-app verification flow.",
+          onComplete={async (v) => {
+            await submitMentorApplication({
+              role,
+              fullName: v.fullName,
+              idNumber: v.idNumber,
+              idDocumentFilename: v.idDoc,
+              workEmail: v.workEmail,
+              institution: v.institution || "",
+              linkedIn: v.linkedin,
+              licenceBody: v.licenceBody,
+              licenceNumber: v.licenceNumber,
+              claimsTeacher: false,
+              partnerCode: v.partnerCode,
+              partnerName: v.partnerName,
+              transcriptFilename: v.transcript,
+              field: "",
+              subjects: [],
+              claim: "Submitted through the in-app verification flow.",
               submitSeconds: v.submitSeconds,
-            }, ...as]);
-            setSession((s) => ({ ...s, verification: v, applicationId: appId }));
+            });
+            await refetchMyApplications();
+            setSession((s) => ({ ...s, verification: v }));
             setVerifying(false);
           }} />
       )}
