@@ -1,16 +1,12 @@
-name: Khetha Career Guidance CI
+name: Khetha Career Guidance CI/CD
 
 on:
   push:
     branches:
       - main
 
-  pull_request:
-    branches:
-      - main
-
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,27 +18,19 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
       - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          npm install
+        working-directory: frontend
+        run: npm install
 
       - name: Build Frontend
-        run: |
-          cd frontend
-          npm run build
+        working-directory: frontend
+        run: npm run build
 
-      - name: Restore Backend Dependencies
-        run: |
-          cd backend
-          dotnet restore
-
-      - name: Build Backend
-        run: |
-          cd backend
-          dotnet build --configuration Release
+      - name: Deploy to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: frontend/dist/
+          server-dir: public_html/
