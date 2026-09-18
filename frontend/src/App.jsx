@@ -749,6 +749,8 @@ export default function NjinjiCareerGuidance() {
     saveOffline: settings.saveOffline,
     unread,
     onOpenNotifications: () => { setTab("me"); setRoute(null); },
+    onOpenProfile: () => { setTab("me"); setRoute(null); },
+    identity: session?.identity,
     online,
     onGoOffline: () => go("offline"),
     t,
