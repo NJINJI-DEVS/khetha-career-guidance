@@ -123,3 +123,5 @@ export const OCCUPATIONS = [
     context: { people: 4, data: 3, things: 1, outdoors: 1, routine: 0 },
   },
 ];
+
+export const occById = Object.fromEntries(OCCUPATIONS.map((o) => [o.id, o]));

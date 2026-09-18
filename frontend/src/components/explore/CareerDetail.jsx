@@ -1,0 +1,74 @@
+// Extracted from App.jsx (Stage 5 of the App.jsx split — see
+// plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
+
+import { ChevronRight } from 'lucide-react';
+import { KHETHA } from '../../theme/tokens';
+import { FIELD } from '../../data/fields';
+import { RIASEC_TYPES } from '../../data/assessments';
+import { occById } from '../../data/occupations';
+import { qualById } from '../../data/qualifications';
+import { providerById } from '../../data/providers';
+import { SUBJECT_LABELS } from '../../data/subjects';
+import { Screen } from '../ui/Screen';
+import { FavouriteButton } from '../ui/FavouriteButton';
+import { Pill } from '../ui/Pill';
+import { SectionTitle } from '../ui/SectionTitle';
+
+/* ---------- Detail screens ---------------------------------------- */
+export function CareerDetail({ id, onBack, fav, toggleFav, go }) {
+  const o = occById[id];
+  const quals = o.quals.map((q) => qualById[q]).filter(Boolean);
+  return (
+    <Screen onBack={onBack} title={o.title} subtitle={o.summary}
+      action={<FavouriteButton on={fav.includes(o.id)} onToggle={() => toggleFav(o.id)} label={o.title} />}>
+      <div className="flex flex-wrap gap-1.5">
+        <Pill style={{ background: FIELD[o.field].color, color: o.field === "business" ? KHETHA.ink : "#fff" }}>
+          {FIELD[o.field].label}
+        </Pill>
+        <Pill tone={o.demand === "Scarce skill" ? "red" : "slate"}>{o.demand}</Pill>
+        <Pill tone="slate">OFO {o.ofo}</Pill>
+        <Pill tone="slate">{o.riasec.map((r) => RIASEC_TYPES[r].label).join(" / ")}</Pill>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-sm font-semibold text-slate-900">What you would actually do</p>
+        <ul className="mt-2 space-y-1.5">
+          {o.tasks.map((task) => (
+            <li key={task} className="flex items-start gap-2 text-xs leading-relaxed text-slate-600">
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" />{task}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-sm font-semibold text-slate-900">Typical earnings</p>
+        <p className="mt-1 text-sm k-tx-005A36">{o.salary}</p>
+        <p className="mt-1 text-[11px] text-slate-600">Entry level to experienced. Varies by employer and province.</p>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-sm font-semibold text-slate-900">School subjects that lead here</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {o.subjects.map((s) => <Pill key={s} tone="blue">{SUBJECT_LABELS[s]}</Pill>)}
+        </div>
+      </div>
+
+      <SectionTitle hint="Tap to open">How to qualify</SectionTitle>
+      <div className="space-y-2.5">
+        {quals.map((q) => (
+          <button key={q.id} onClick={() => go(`qual:${q.id}`)}
+            className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left">
+            <span className="flex-1">
+              <span className="block text-sm font-semibold text-slate-900">{q.title}</span>
+              <span className="block text-[11px] text-slate-600">
+                {providerById[q.providerId].name} · NQF {q.nqf} · APS {q.minAPS}
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
+          </button>
+        ))}
+      </div>
+    </Screen>
+  );
+}

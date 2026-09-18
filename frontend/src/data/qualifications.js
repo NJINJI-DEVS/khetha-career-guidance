@@ -31,3 +31,5 @@ export const QUALIFICATIONS = [
   { id: "q14", title: "BEng Mechanical Engineering", providerId: "p11", nqf: 8, duration: "4 years", minAPS: 38,
     requires: { maths: 70, physci: 70, english: 50 }, pureMathsOnly: true, nsfas: true, deadline: "31 July", field: "stem" },
 ];
+
+export const qualById = Object.fromEntries(QUALIFICATIONS.map((q) => [q.id, q]));
