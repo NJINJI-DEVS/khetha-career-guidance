@@ -39,6 +39,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Matriculant>().HasIndex(m => m.UserId).IsUnique().HasDatabaseName("matriculants_user_id_key");
         modelBuilder.Entity<Matriculant>().HasIndex(m => m.Province).HasDatabaseName("ix_matriculants_province");
+        modelBuilder.Entity<Matriculant>().Property(m => m.ProfileData).HasColumnType("jsonb");
 
         modelBuilder.Entity<Matriculant>()
             .HasMany(m => m.Subjects)

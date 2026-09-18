@@ -4,8 +4,14 @@
 // of the same concept (editing the APS calculator never updated what
 // OfflineCentre/SmsSummaryModal/RequestLetterModal showed via `learner.subjects`).
 import { useEffect, useState } from 'react';
-import { getMyMatriculantProfile, createMatriculantProfile, updateMySubjects } from '../lib/api';
+import { getMyMatriculantProfile, createMatriculantProfile, updateMySubjects, updateMyProfileData } from '../lib/api';
 import { matriculantToLearner, keyForSubject, subjectToDisplay } from '../adapters/learner';
+
+function parseAppProfile(matriculant) {
+  if (!matriculant?.profileData) return null;
+  try { return JSON.parse(matriculant.profileData); }
+  catch { return null; }
+}
 
 function subjectsFromMatriculant(matriculant) {
   const subjects = (matriculant.subjects || []).map(subjectToDisplay);
@@ -83,5 +89,10 @@ export function useMatriculantProfile({ enabled }) {
     setMathsIsPure,
     createProfile,
     refetch,
+    // The learner's saved journey state (favourites, questionnaire results,
+    // etc.) — null the first time this account is ever seen. See App.jsx for
+    // how this seeds ProfileContext and gets debounce-saved back on change.
+    appProfile: parseAppProfile(matriculant),
+    saveAppProfile: updateMyProfileData,
   };
 }
