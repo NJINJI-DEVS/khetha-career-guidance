@@ -7,13 +7,16 @@ import { SUBJECT_LABELS } from '../../data/subjects';
 import { ModalShell } from '../ui/ModalShell';
 
 /* ---- AI OCR simulation -------------------------------------------- */
-export function OcrScanModal({ learner, onClose, onApply }) {
+export function OcrScanModal({ learner, detected: detectedProp, onClose, onApply, applyLabel = "Use these marks" }) {
   const [stage, setStage] = useState("aim");
   const [rows, setRows] = useState([]);
 
-  const detected = learner.subjects
-    ? learner.subjects.map((s) => ({ label: s.label, pct: s.pct }))
-    : Object.entries(learner.gr9Marks || {}).map(([k, v]) => ({ label: SUBJECT_LABELS[k] || k, pct: v }));
+  /* Onboarding has no learner yet, so it passes the detected rows directly;
+     everywhere else derives them from the profile already on file. */
+  const detected = detectedProp
+    || (learner?.subjects
+      ? learner.subjects.map((s) => ({ label: s.label, pct: s.pct }))
+      : Object.entries(learner?.gr9Marks || {}).map(([k, v]) => ({ label: SUBJECT_LABELS[k] || k, pct: v })));
 
   useEffect(() => {
     const timers = [];
@@ -72,9 +75,9 @@ export function OcrScanModal({ learner, onClose, onApply }) {
         never leaves the phone, which matters on a shared or borrowed device.
       </p>
 
-      <button onClick={onApply} disabled={stage !== "done"}
+      <button onClick={() => onApply(rows)} disabled={stage !== "done"}
         className="mt-3 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
-        Use these marks
+        {applyLabel}
       </button>
     </ModalShell>
   );

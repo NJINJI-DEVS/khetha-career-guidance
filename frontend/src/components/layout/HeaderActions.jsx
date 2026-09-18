@@ -4,7 +4,7 @@
 // does `onOpenNotifications={() => { setTab("me"); setRoute(null); }}`.
 import { WifiOff, Bell, LogOut } from 'lucide-react';
 
-export function HeaderActions({ offline, saveOffline, unread, onOpenNotifications, onSignOut }) {
+export function HeaderActions({ offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, onSignOut }) {
   return (
     <div className="flex items-center gap-1.5">
       {(offline || saveOffline) && (
@@ -22,6 +22,14 @@ export function HeaderActions({ offline, saveOffline, unread, onOpenNotification
           </span>
         )}
       </button>
+      {/* Profile lives in SECONDARY nav, which the 5-slot mobile bar never has
+          room for — without this the learner could not reach it at all. */}
+      {onOpenProfile && (
+        <button onClick={onOpenProfile} aria-label="My profile and settings"
+          className="grid h-9 w-9 place-items-center rounded-full k-bg-005A36 text-[11px] font-bold text-white ring-1 k-rg-00784A">
+          {(identity || "K").slice(0, 2).toUpperCase()}
+        </button>
+      )}
       {onSignOut && (
         <button onClick={onSignOut} aria-label="Log out"
           className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200">

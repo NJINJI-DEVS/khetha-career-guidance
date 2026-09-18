@@ -6,10 +6,23 @@
 // where they figure out their Grade 10 package, and they'll add real NSC subjects
 // here once they have them.
 import { useState } from 'react';
-import { Plus, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Loader2, AlertTriangle, Camera } from 'lucide-react';
 import { SUBJECT_LABELS, SUBJECT_CATEGORIES } from '../../data/subjects';
 import { Screen } from '../ui/Screen';
 import { SectionTitle } from '../ui/SectionTitle';
+import { OcrScanModal } from '../learner/OcrScanModal';
+
+// What the simulated scan "reads" off a report card. Every label matches a
+// SUBJECT_LABELS value so the rows drop straight into the selects below.
+const MOCK_SCAN = [
+  { label: "English", pct: 68 },
+  { label: "isiZulu", pct: 74 },
+  { label: "Mathematics", pct: 61 },
+  { label: "Physical Sciences", pct: 58 },
+  { label: "Life Sciences", pct: 65 },
+  { label: "Geography", pct: 70 },
+  { label: "Life Orientation", pct: 79 },
+];
 
 const PROVINCES = [
   "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo",
@@ -26,6 +39,8 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
   const [subjects, setSubjects] = useState([{ subjectName: SUBJECT_OPTIONS[0], percentage: 60 }]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanned, setScanned] = useState(false);
 
   const needsSubjects = grade >= 10;
 
@@ -94,6 +109,24 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
         {needsSubjects ? (
           <div>
             <SectionTitle hint="Best six count toward your APS">Your subjects and marks</SectionTitle>
+
+            <button onClick={() => setScanOpen(true)}
+              className="mb-3 flex w-full items-center gap-3 rounded-2xl border border-dashed k-bd-00784A k-bg-E7F4EE p-3 text-left">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl k-bg-005A36 text-white">
+                <Camera className="h-5 w-5" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold k-tx-005A36">
+                  {scanned ? "Scan again" : "Scan your report card"}
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-600">
+                  {scanned
+                    ? "Marks filled in below — check them against the page before saving."
+                    : "Point the camera at your latest report and we fill this in for you. Faster than typing seven rows."}
+                </span>
+              </span>
+            </button>
+
             <div className="space-y-2.5">
               {subjects.map((row, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -145,6 +178,19 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
           </button>
         )}
       </div>
+
+      {scanOpen && (
+        <OcrScanModal
+          detected={MOCK_SCAN}
+          applyLabel="Fill in my subjects"
+          onClose={() => setScanOpen(false)}
+          onApply={(rows) => {
+            setSubjects(rows.map((r) => ({ subjectName: r.label, percentage: r.pct })));
+            setScanned(true);
+            setScanOpen(false);
+          }}
+        />
+      )}
     </Screen>
   );
 }

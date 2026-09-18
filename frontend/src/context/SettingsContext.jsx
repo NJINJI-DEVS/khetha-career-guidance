@@ -10,7 +10,7 @@ const SettingsContext = createContext(null);
 
 const DEFAULT_SETTINGS = {
   lang: "en", textScale: 1, highContrast: false, reduceMotion: false,
-  simpleLanguage: false, offline: false, saveOffline: false,
+  simpleLanguage: false, readAloud: false, offline: false, saveOffline: false,
   notifyDeadlines: true, notifyEvents: true, notifyNsfas: true,
 };
 
