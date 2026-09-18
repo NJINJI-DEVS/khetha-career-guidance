@@ -653,7 +653,7 @@ export default function NjinjiCareerGuidance() {
               onOpen={(id) => go(`qual:${id}`)} />
           )}
           {exploreTab === "providers" && <ProvidersDirectory fav={profile.favourites} toggleFav={toggleFav} />}
-          {exploreTab === "advice" && <AdviceDirectory notify={remindEvent} />}
+          {exploreTab === "advice" && <AdviceDirectory notify={remindEvent} learner={learner} go={go} />}
         </div>
       )}
 
