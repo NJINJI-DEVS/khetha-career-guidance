@@ -14,7 +14,8 @@ import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { useHelpRequests } from './hooks/useHelpRequests';
 import { useMentorApplications } from './hooks/useMentorApplications';
 import { useNotifications } from './hooks/useNotifications';
-import { submitMentorApplication } from './lib/api';
+import { submitMentorApplication, getMyAccountRole, claimAccountRole } from './lib/api';
+import { signOut } from './services/authService';
 import { Screen } from './components/ui/Screen';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
@@ -150,6 +151,52 @@ export default function NjinjiCareerGuidance() {
   const {
     role, setRole, session, setSession, verifying, setVerifying,
   } = useAuth();
+
+  /* An account is bound to one real role forever, the first time it's ever
+     seen (see AccountController) — the RoleSelector button only chooses what
+     a BRAND NEW account registers as. Every login after that, this reconciles
+     the picked role against the account's real one before a session is ever
+     set, so the same login can't get in as a student one time and a mentor
+     the next. */
+  const [pendingRoleIssue, setPendingRoleIssue] = useState(null);
+  // { kind: 'mismatch', picked, actual, pendingAuth } | { kind: 'error', message, pendingAuth }
+  const resolveAccountRole = async (pickedRole, authPayload) => {
+    try {
+      let accountRole;
+      try {
+        accountRole = (await getMyAccountRole()).role;
+      } catch (err) {
+        if (err.status !== 404) throw err;
+        try {
+          accountRole = (await claimAccountRole(pickedRole)).role;
+        } catch (claimErr) {
+          if (claimErr.status === 409 && claimErr.body?.role) accountRole = claimErr.body.role;
+          else throw claimErr;
+        }
+      }
+      if (accountRole !== pickedRole) {
+        setPendingRoleIssue({ kind: 'mismatch', picked: pickedRole, actual: accountRole, pendingAuth: authPayload });
+        return;
+      }
+      setPendingRoleIssue(null);
+      setSession({ ...authPayload, role: pickedRole });
+      if (ROLES[pickedRole].verifies) setVerifying(true);
+    } catch (err) {
+      setPendingRoleIssue({ kind: 'error', message: err.message, pendingAuth: authPayload });
+    }
+  };
+  const continueAsActualRole = () => {
+    const { actual, pendingAuth } = pendingRoleIssue;
+    setPendingRoleIssue(null);
+    setRole(actual);
+    setSession({ ...pendingAuth, role: actual });
+    if (ROLES[actual].verifies) setVerifying(true);
+  };
+  const abandonRoleIssue = async () => {
+    await signOut();
+    setPendingRoleIssue(null);
+    setRole(null);
+  };
 
   const { profile, setProfile } = useProfile();
   const {
@@ -405,15 +452,46 @@ export default function NjinjiCareerGuidance() {
 
   const body = (
     <>
-      {!role && <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))} onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />}
+      {pendingRoleIssue?.kind === 'mismatch' && (
+        <div className="flex min-h-full flex-col items-center justify-center gap-3 p-8 text-center">
+          <p className="text-sm font-semibold text-slate-900">This account is a {ROLES[pendingRoleIssue.actual]?.label || pendingRoleIssue.actual}</p>
+          <p className="max-w-xs text-xs leading-relaxed text-slate-600">
+            You picked {ROLES[pendingRoleIssue.picked]?.label || pendingRoleIssue.picked}, but this login already
+            registered as {ROLES[pendingRoleIssue.actual]?.label || pendingRoleIssue.actual}. An account keeps the
+            role it first registered with.
+          </p>
+          <button onClick={continueAsActualRole}
+            className="mt-2 rounded-xl k-bg-005A36 px-4 py-2 text-sm font-semibold text-white">
+            Continue as {ROLES[pendingRoleIssue.actual]?.label || pendingRoleIssue.actual}
+          </button>
+          <button onClick={abandonRoleIssue} className="text-xs font-semibold text-slate-600 underline">
+            Sign out and use a different account
+          </button>
+        </div>
+      )}
 
-      {role && !session && (
+      {pendingRoleIssue?.kind === 'error' && (
+        <div className="flex min-h-full flex-col items-center justify-center gap-3 p-8 text-center">
+          <p className="text-sm font-semibold text-slate-900">Couldn't confirm your account</p>
+          <p className="max-w-xs text-xs leading-relaxed text-slate-600">{pendingRoleIssue.message}</p>
+          <button onClick={() => resolveAccountRole(role, pendingRoleIssue.pendingAuth)}
+            className="mt-2 rounded-xl k-bg-005A36 px-4 py-2 text-sm font-semibold text-white">
+            Try again
+          </button>
+          <button onClick={abandonRoleIssue} className="text-xs font-semibold text-slate-600 underline">
+            Sign out
+          </button>
+        </div>
+      )}
+
+      {!pendingRoleIssue && !role && (
+        <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))} onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />
+      )}
+
+      {!pendingRoleIssue && role && !session && (
         <AuthScreen role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
-          onAuthenticated={(s) => {
-            setSession({ ...s, role });
-            if (ROLES[role].verifies) setVerifying(true);
-          }} />
+          onAuthenticated={(s) => resolveAccountRole(role, s)} />
       )}
 
       {session && isStudent && profileStatus === 'loading' && (

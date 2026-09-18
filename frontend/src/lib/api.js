@@ -18,8 +18,11 @@ export async function apiFetch(path, options = {}) {
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`API error ${res.status}: ${body}`);
+    const text = await res.text().catch(() => '');
+    const err = new Error(`API error ${res.status}: ${text}`);
+    err.status = res.status;
+    try { err.body = text ? JSON.parse(text) : null; } catch { err.body = null; }
+    throw err;
   }
 
   // Some endpoints (e.g. PUT .../subjects) return 204 No Content.
@@ -28,6 +31,13 @@ export async function apiFetch(path, options = {}) {
 }
 
 // --- Convenience wrappers matching the current backend's actual endpoints ---
+
+// --- Account role (binds a Supabase account to one role, permanently) ---
+
+export const getMyAccountRole = () => apiFetch('/api/account/role');
+
+export const claimAccountRole = (role) =>
+  apiFetch('/api/account/role', { method: 'POST', body: JSON.stringify({ role }) });
 
 export const calculateAps = (subjects) =>
   apiFetch('/api/aps/calculate', {

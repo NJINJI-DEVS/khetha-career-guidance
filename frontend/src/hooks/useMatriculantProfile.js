@@ -39,7 +39,7 @@ export function useMatriculantProfile({ enabled }) {
         setStatus('ready');
       } catch (err) {
         if (cancelled) return;
-        if (/API error 404/.test(err.message)) setStatus('no-profile');
+        if (err.status === 404) setStatus('no-profile');
         else { setError(err); setStatus('error'); }
       }
     })();

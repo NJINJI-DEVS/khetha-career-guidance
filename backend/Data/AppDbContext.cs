@@ -161,6 +161,9 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<AuditLog>().HasIndex(a => new { a.EntityType, a.EntityId }).HasDatabaseName("ix_audit_logs_entity");
 
-        modelBuilder.Entity<UserRole>().HasKey(r => new { r.UserId, r.Role });
+        // One row per account: this is now the single source of truth for which
+        // role a Supabase user registered under (see AccountController), not just
+        // an admin flag — so UserId alone must be unique, not (UserId, Role).
+        modelBuilder.Entity<UserRole>().HasKey(r => r.UserId);
     }
 }
