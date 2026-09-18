@@ -65,4 +65,20 @@ public class MatriculantsController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    /// <summary>Persists the learner's in-app journey state (favourites, saved
+    /// questionnaire results, etc.) — see Matriculant.ProfileData's doc comment.
+    /// Body is opaque JSON text; this endpoint never inspects it.</summary>
+    [HttpPut("me/profile-data")]
+    public async Task<ActionResult> UpdateProfileData([FromBody] ProfileDataDto body, CancellationToken ct)
+    {
+        var profile = await _db.Matriculants.FirstOrDefaultAsync(m => m.UserId == CurrentUserId, ct);
+        if (profile is null) return NotFound();
+
+        profile.ProfileData = body.Data;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
 }
+
+public record ProfileDataDto(string? Data);

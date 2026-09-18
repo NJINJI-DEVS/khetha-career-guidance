@@ -21,6 +21,16 @@ public class Matriculant
     public string Province { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // The learner's in-app journey state (favourited qualifications, saved
+    // Career Choice/Job Fit/Subject Chooser results, which "next step" prompts
+    // have been dismissed) — opaque JSON produced and consumed entirely by the
+    // frontend (see frontend/src/context/ProfileContext.jsx). The backend
+    // never reads its contents, just stores and returns it, so its shape can
+    // evolve on the frontend without a migration here. Previously this only
+    // ever lived in React state (reset on every reload) or an opt-in local
+    // cache, which is why "Step 2 of 6" kept resetting for real users.
+    public string? ProfileData { get; set; }
+
     public ICollection<MatriculantSubject> Subjects { get; set; } = new List<MatriculantSubject>();
 }
 

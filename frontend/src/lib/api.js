@@ -73,6 +73,15 @@ export const updateMySubjects = (subjects) =>
     body: JSON.stringify(subjects),
   });
 
+// The backend stores this as opaque JSON text — it never inspects the
+// content, so the double encoding (JSON.stringify'd payload, itself sent as
+// one field of a JSON request body) is intentional, not a mistake.
+export const updateMyProfileData = (profileData) =>
+  apiFetch('/api/matriculants/me/profile-data', {
+    method: 'PUT',
+    body: JSON.stringify({ data: profileData ? JSON.stringify(profileData) : null }),
+  });
+
 export const searchSaqa = (q) =>
   apiFetch(`/api/qualifications/saqa${q ? `?q=${encodeURIComponent(q)}` : ''}`);
 

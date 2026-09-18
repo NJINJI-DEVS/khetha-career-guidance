@@ -7,7 +7,7 @@
 // here once they have them.
 import { useState } from 'react';
 import { Plus, Trash2, Loader2, AlertTriangle } from 'lucide-react';
-import { SUBJECT_LABELS } from '../../data/subjects';
+import { SUBJECT_LABELS, SUBJECT_CATEGORIES } from '../../data/subjects';
 import { Screen } from '../ui/Screen';
 import { SectionTitle } from '../ui/SectionTitle';
 
@@ -99,7 +99,11 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
                 <div key={i} className="flex items-center gap-2">
                   <select value={row.subjectName} onChange={(e) => updateSubject(i, { subjectName: e.target.value })}
                     className="flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-900 k-fb-00784A focus:outline-none focus-visible:ring-2 k-fvr-D4AF37">
-                    {SUBJECT_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    {SUBJECT_CATEGORIES.map((cat) => (
+                      <optgroup key={cat.category} label={cat.category}>
+                        {cat.keys.map((k) => <option key={k} value={SUBJECT_LABELS[k]}>{SUBJECT_LABELS[k]}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                   <input type="number" min={0} max={100} value={row.percentage}
                     onChange={(e) => updateSubject(i, { percentage: Math.max(0, Math.min(100, Number(e.target.value))) })}

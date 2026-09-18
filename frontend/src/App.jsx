@@ -9,7 +9,7 @@ import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
 import { useAuth } from './context/AuthContext';
-import { useProfile } from './context/ProfileContext';
+import { useProfile, DEFAULT_PROFILE } from './context/ProfileContext';
 import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { useHelpRequests } from './hooks/useHelpRequests';
 import { useMentorApplications } from './hooks/useMentorApplications';
@@ -202,9 +202,42 @@ export default function NjinjiCareerGuidance() {
   const { profile, setProfile } = useProfile();
   const {
     status: profileStatus, profileError, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
-    refetch: refetchProfile,
+    refetch: refetchProfile, appProfile, saveAppProfile,
   } = useMatriculantProfile({ enabled: !!session && role === "student" });
   const hasProfile = profileStatus === 'ready';
+
+  /* profile (favourites, Career Choice/Job Fit/Subject Chooser results, which
+     "next step" nudges fired) used to live only in React state — reset to
+     DEFAULT_PROFILE on every reload unless the opt-in "Save for offline
+     viewing" toggle happened to be on. Real learners kept re-doing Step 2 of
+     6 because nothing durable ever recorded they'd done it. Seeded once from
+     the real backend value the moment the profile finishes loading, then
+     debounce-saved back on every change — same pattern as subjects/marks. */
+  const appProfileSeeded = useRef(false);
+  useEffect(() => {
+    if (!hasProfile || appProfileSeeded.current) return;
+    appProfileSeeded.current = true;
+    if (appProfile) setProfile((p) => ({ ...p, ...appProfile }));
+  }, [hasProfile, appProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!hasProfile || !appProfileSeeded.current) return undefined;
+    const timer = setTimeout(() => {
+      saveAppProfile(profile).catch((err) => console.error('Failed to save profile', err));
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [profile, hasProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Signing out never used to matter, since profile reset itself on the next
+  // reload anyway — now that it's real, persisted, per-account data, leaving
+  // it in place would leak one account's favourites/results into whichever
+  // account signs in next in the same tab, and then save that leaked data
+  // right back onto the new account.
+  useEffect(() => {
+    if (session) return;
+    appProfileSeeded.current = false;
+    setProfile(DEFAULT_PROFILE);
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
   const isMentorOrAdmin = !!session && role !== "student";
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =

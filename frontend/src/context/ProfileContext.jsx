@@ -9,7 +9,7 @@ import { createContext, useContext, useState } from 'react';
 
 const ProfileContext = createContext(null);
 
-const DEFAULT_PROFILE = {
+export const DEFAULT_PROFILE = {
   favourites: [], careerChoice: null, jobFit: null, subjectResult: null,
 };
 
