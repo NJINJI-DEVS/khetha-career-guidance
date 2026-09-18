@@ -13,7 +13,7 @@ export function MobileShell({
   shellWidth, shellHeight, shellClass, layout,
   session, isStudent, role, setRole, setSession, setRoute,
   textScale, body, modals,
-  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity,
+  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, avatar,
   online, onGoOffline, t,
   showNextStep, journey, go, onDismissNextBar,
   NAV, SECONDARY, tab, setTab, route,
@@ -39,7 +39,7 @@ export function MobileShell({
               <div className="flex items-center gap-1.5">
                 <OfflinePill online={online} offline={offline} saveOffline={saveOffline} onGoOffline={onGoOffline} t={t} />
                 <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications}
-                  onOpenProfile={onOpenProfile} identity={identity}
+                  onOpenProfile={onOpenProfile} identity={identity} avatar={avatar}
                   onSignOut={() => { setRole(null); setSession(null); setRoute(null); }} />
               </div>
             )}
