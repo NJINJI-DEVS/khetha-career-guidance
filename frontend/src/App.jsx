@@ -494,7 +494,7 @@ export default function NjinjiCareerGuidance() {
   const renderOverlay = () => {
     if (!route) return null;
     if (route === "tool:chooser")
-      return <SubjectChooser onBack={() => setRoute(null)} saved={profile.subjectResult}
+      return <SubjectChooser onBack={() => setRoute(null)} saved={profile.subjectResult} go={go}
         onSave={(r) => setProfile((p) => ({ ...p, subjectResult: r }))} />;
     if (route === "tool:choice")
       return <Questionnaire kind="choice" onBack={() => setRoute(null)} saved={profile.careerChoice}
