@@ -1,0 +1,73 @@
+// Extracted from App.jsx (Stage 5 of the App.jsx split — see
+// plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
+
+import { ChevronRight, ShieldCheck } from 'lucide-react';
+import { ROLES } from '../../data/roles';
+import { Pill } from '../ui/Pill';
+import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
+import { LanguagePicker } from '../ui/LanguagePicker';
+
+export function RoleSelector({ t, lang, setLang, onPick }) {
+  return (
+    <div className="flex min-h-full flex-col px-5 pb-6 pt-6">
+      <div className="flex items-center gap-3">
+        <DhetArms className="h-14" />
+        <div className="leading-none">
+          <p className="text-[15px] font-semibold lowercase leading-tight tracking-tight text-slate-900">
+            higher education<br />&amp; training
+          </p>
+          <p className="mt-1.5 border-t border-slate-300 pt-1.5 text-[9px] leading-tight text-slate-600">
+            Department of Higher Education and Training<br />
+            <span className="font-semibold text-slate-800">REPUBLIC OF SOUTH AFRICA</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 flex h-1 w-24 overflow-hidden rounded-full">
+        <span className="flex-1 k-bg-005A36" /><span className="flex-1 k-bg-D4AF37" />
+        <span className="flex-1 k-bg-1E3A6E" /><span className="flex-1 k-bg-B3261E" />
+      </div>
+
+      <div className="mt-5">
+        <LanguagePicker t={t} lang={lang} setLang={setLang} />
+      </div>
+
+      <h2 className="mt-5 text-xl font-bold tracking-tight text-slate-900">{t("howJoining")}</h2>
+      <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+        This decides what the app shows you. Mentors and professionals go through verification before any learner
+        can reach them.
+      </p>
+
+      <div className="mt-6 grid gap-2.5 lg:grid-cols-2">
+        {Object.values(ROLES).map((r) => {
+          const Icon = r.icon;
+          return (
+            <button key={r.key} onClick={() => onPick(r.key)}
+              className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-400">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white"
+                style={{ background: r.color }}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="flex-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">{t(r.labelKey)}</span>
+                  {r.verifies && <Pill tone="gold">{t("verificationRequired")}</Pill>}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate-600">{t(r.blurbKey)}</span>
+              </span>
+              <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-500" />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-auto pt-8">
+        <p className="flex items-start gap-2 rounded-xl k-bg-E7F4EE p-3 text-[11px] leading-relaxed k-tx-005A36">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+          {t("vettedNote")}
+        </p>
+        <div className="mt-5 flex justify-center"><KhethaWordmark className="h-8" /></div>
+      </div>
+    </div>
+  );
+}

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CareerAdvisor.Api.Models;
 
 public class University
@@ -16,6 +18,10 @@ public class Course
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UniversityId { get; set; }
+
+    // Back-reference only — not serialized, same cycle hazard as
+    // MatriculantSubject.Matriculant (see that file's comment).
+    [JsonIgnore]
     public University? University { get; set; }
 
     public string Name { get; set; } = string.Empty;
@@ -34,6 +40,9 @@ public class CourseSubjectRequirement
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseId { get; set; }
+
+    // Back-reference only — not serialized, same cycle hazard noted above.
+    [JsonIgnore]
     public Course? Course { get; set; }
 
     public string SubjectName { get; set; } = string.Empty;

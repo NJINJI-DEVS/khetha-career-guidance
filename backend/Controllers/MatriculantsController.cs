@@ -30,8 +30,13 @@ public class MatriculantsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Matriculant>> Create([FromBody] Matriculant input, CancellationToken ct)
     {
+        var currentUserId = CurrentUserId;
+        var exists = await _db.Matriculants.AnyAsync(m => m.UserId == currentUserId, ct);
+        if (exists)
+            return Conflict(new { error = "A profile already exists for this user. Use PUT to update it." });
+
         input.Id = Guid.NewGuid();
-        input.UserId = CurrentUserId;
+        input.UserId = currentUserId;
         input.CreatedAt = DateTime.UtcNow;
         foreach (var s in input.Subjects) { s.Id = Guid.NewGuid(); s.MatriculantId = input.Id; }
 

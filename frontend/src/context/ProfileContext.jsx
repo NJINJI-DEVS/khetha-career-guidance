@@ -1,0 +1,30 @@
+// Extracted from App.jsx's root component (NjinjiCareerGuidance): the
+// `profile` career-journey record (favourites, careerChoice, jobFit,
+// subjectResult, apsVisited, requestSent). Cross-cutting like settings —
+// Dashboard, MeScreen, CareerDetail (favourites), the questionnaires, and
+// the journey progress bar all read/write pieces of it. The derived
+// `journey` value (via useJourney) stays computed in the root, not here —
+// this Context only owns the raw state.
+import { createContext, useContext, useState } from 'react';
+
+const ProfileContext = createContext(null);
+
+const DEFAULT_PROFILE = {
+  favourites: [], careerChoice: null, jobFit: null, subjectResult: null,
+};
+
+export function ProfileProvider({ children }) {
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+
+  return (
+    <ProfileContext.Provider value={{ profile, setProfile }}>
+      {children}
+    </ProfileContext.Provider>
+  );
+}
+
+export function useProfile() {
+  const ctx = useContext(ProfileContext);
+  if (!ctx) throw new Error('useProfile must be used within a ProfileProvider');
+  return ctx;
+}
