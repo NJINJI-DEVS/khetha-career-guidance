@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { SettingsProvider } from './context/SettingsContext';
 import { AuthProvider } from './context/AuthContext';
+import { ProfileProvider } from './context/ProfileContext';
 import './index.css';
 
 // Note: intentionally not wrapped in <React.StrictMode>. The app relies on several
@@ -12,7 +13,9 @@ import './index.css';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <SettingsProvider>
     <AuthProvider>
-      <App />
+      <ProfileProvider>
+        <App />
+      </ProfileProvider>
     </AuthProvider>
   </SettingsProvider>
 );

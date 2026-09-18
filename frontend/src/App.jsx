@@ -12,6 +12,7 @@ import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
 import { useAuth } from './context/AuthContext';
+import { useProfile } from './context/ProfileContext';
 import { Screen } from './components/ui/Screen';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
@@ -148,9 +149,7 @@ export default function NjinjiCareerGuidance() {
     pitchMode, setPitchMode, learner,
   } = useAuth();
 
-  const [profile, setProfile] = useState({
-    favourites: [], careerChoice: null, jobFit: null, subjectResult: null,
-  });
+  const { profile, setProfile } = useProfile();
   const [requests, setRequests] = useState(SEED_REQUESTS);
   const [applications, setApplications] = useState(SEED_APPLICATIONS);
   const [notifications, setNotifications] = useState([
