@@ -48,10 +48,14 @@ public class OccupationEnrichmentService : IOccupationEnrichmentService
     }
 
     private string? ApiKey => _config["Gemini:ApiKey"];
-    // Verified against the live API: gemini-2.0-flash now returns 404 "no longer
-    // available". Model availability moves, so this stays configurable and the
-    // default is only a starting point — check it before a large batch.
-    private string Model => _config["Gemini:Model"] ?? "gemini-3.6-flash";
+    /* Default chosen from live behaviour, not from the docs:
+         gemini-2.0-flash  404, retired
+         gemini-3.6-flash  503 on every attempt across two sessions, even with
+                           backoff — the API recommends it, but it is saturated
+         gemini-2.5-flash  works, and enriched 12/12 occupations first time
+       Newer is not better if it never answers. Still configurable, because this
+       will age: list live models with GET /v1beta/models before changing it. */
+    private string Model => _config["Gemini:Model"] ?? "gemini-2.5-flash";
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
 
     // The engines and the UI only understand these values, so the model's output
