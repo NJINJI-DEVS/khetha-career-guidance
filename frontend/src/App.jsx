@@ -11,6 +11,7 @@ import { chooseSubjects, eligibility } from './engines/subjects';
 import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
+import { useAuth } from './context/AuthContext';
 import { Screen } from './components/ui/Screen';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
@@ -141,15 +142,11 @@ import { DesktopShell } from './components/layout/DesktopShell';
    ================================================================== */
 
 export default function NjinjiCareerGuidance() {
-  const [role, setRole] = useState(null);
-  const [session, setSession] = useState(null);
-  const [verifying, setVerifying] = useState(false);
-
-  /* Pitch Mode: false = Sipho (Grade 9), true = Thandi (Grade 12) */
-  const [pitchMode, setPitchMode] = useState(true);
-  const learner = pitchMode ? DEMO_PROFILES.thandi : DEMO_PROFILES.sipho;
-
   const { settings, setSettings, t } = useSettings();
+  const {
+    role, setRole, session, setSession, verifying, setVerifying,
+    pitchMode, setPitchMode, learner,
+  } = useAuth();
 
   const [profile, setProfile] = useState({
     favourites: [], careerChoice: null, jobFit: null, subjectResult: null,
