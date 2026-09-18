@@ -28,7 +28,6 @@ import { GUEST_LEARNER, GUEST_SESSION } from './data/guestLearner';
 import { DEMO_ADMIN_SESSION, DEMO_APPLICATIONS, DEMO_ANALYTICS } from './data/demoAdmin';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
-import { ViewportSwitcher } from './components/layout/ViewportSwitcher';
 import { CareerDetail } from './components/explore/CareerDetail';
 import { QualDetail } from './components/explore/QualDetail';
 import { Advisor } from './components/advisor/Advisor';
@@ -719,7 +718,8 @@ export default function NjinjiCareerGuidance() {
         <MeScreen t={t} session={session} profile={profile} setProfile={setProfile}
           settings={settings} setSettings={setSettings} notifications={notifications}
           markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
-          aps={aps} go={go} packs={packs} togglePack={togglePack} />
+          aps={aps} go={go} packs={packs} togglePack={togglePack}
+          viewport={viewport} setViewport={setViewport} />
       )}
     </>
   );
@@ -813,7 +813,6 @@ export default function NjinjiCareerGuidance() {
     <div className="min-h-screen w-full bg-slate-200">
       <style>{a11yCss}</style>
       {layout === "desktop" ? desktopShell : mobileShell}
-      <ViewportSwitcher value={viewport} onChange={setViewport} />
     </div>
   );
 }

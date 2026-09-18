@@ -5,13 +5,14 @@ import { useState } from 'react';
 import {
   ShieldCheck, Plug, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
   BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
-  Settings, Pencil, Route,
+  Settings, Pencil, Route, Monitor,
 } from 'lucide-react';
 import { Avatar, ProfileEditor } from './ProfileEditor';
 import { occById } from '../../data/occupations';
 import { qualById } from '../../data/qualifications';
 import { providerById } from '../../data/providers';
 import { LANGUAGES } from '../../data/i18n';
+import { VIEWPORTS } from '../../data/viewports';
 import { CONSENT_ITEMS } from '../../data/auth';
 import { Pill } from '../ui/Pill';
 import { EmptyState } from '../ui/EmptyState';
@@ -21,7 +22,7 @@ import { SectionTitle } from '../ui/SectionTitle';
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport }) {
   const [tab, setTab] = useState("journey");
   const [editorOpen, setEditorOpen] = useState(false);
   const shownName = profile.displayName || session.identity;
@@ -214,6 +215,33 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
               ))}
             </div>
           </div>
+
+          {/* Preview layout — moved here from a floating bar that covered the
+              bottom navigation and made the tabs underneath unclickable. */}
+          {setViewport && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Monitor className="h-4 w-4" />Preview layout
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                Auto follows your screen size. The others force a layout, which is useful for showing the app on a
+                projector or checking a phone view from a laptop.
+              </p>
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {VIEWPORTS.map((v) => {
+                  const Icon = v.icon;
+                  return (
+                    <button key={v.key} onClick={() => setViewport(v.key)} aria-pressed={viewport === v.key}
+                      className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors ${
+                        viewport === v.key ? "k-bg-005A36 text-white" : "bg-slate-100 text-slate-700"
+                      }`}>
+                      <Icon className="h-3.5 w-3.5" />{v.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
