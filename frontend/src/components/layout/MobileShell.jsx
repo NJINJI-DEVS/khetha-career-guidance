@@ -6,7 +6,6 @@ import { ROLES } from '../../data/roles';
 import { NextStepBar } from '../learner/NextStepBar';
 import { DeptBar } from './DeptBar';
 import { ColourRule } from './ColourRule';
-import { PitchToggle } from './PitchToggle';
 import { HeaderActions } from './HeaderActions';
 import { OfflinePill } from './OfflinePill';
 
@@ -14,7 +13,6 @@ export function MobileShell({
   shellWidth, shellHeight, shellClass, layout,
   session, isStudent, role, setRole, setSession, setRoute,
   textScale, body, modals,
-  pitchMode, onTogglePitch,
   offline, saveOffline, unread, onOpenNotifications,
   online, onGoOffline, t,
   showNextStep, journey, go, onDismissNextBar,
@@ -44,7 +42,6 @@ export function MobileShell({
               </div>
             )}
           </div>
-          {session && isStudent && <div className="mt-3"><PitchToggle pitchMode={pitchMode} onToggle={onTogglePitch} /></div>}
           {session && !isStudent && (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-white"

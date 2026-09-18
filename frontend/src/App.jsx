@@ -2,7 +2,6 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { THEME } from './theme/tokens';
 import { QUALIFICATIONS, qualById } from './data/qualifications';
 import { providerById } from './data/providers';
-import { DEMO_PROFILES } from './data/demoProfiles';
 import { SEED_REQUESTS } from './data/mentors';
 import { ROLES } from './data/roles';
 import { SEED_APPLICATIONS } from './data/seedApplications';
@@ -13,10 +12,12 @@ import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
 import { useAuth } from './context/AuthContext';
 import { useProfile } from './context/ProfileContext';
+import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { Screen } from './components/ui/Screen';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
 import { ViewportSwitcher } from './components/layout/ViewportSwitcher';
@@ -146,10 +147,13 @@ export default function NjinjiCareerGuidance() {
   const { settings, setSettings, t } = useSettings();
   const {
     role, setRole, session, setSession, verifying, setVerifying,
-    pitchMode, setPitchMode, learner,
   } = useAuth();
 
   const { profile, setProfile } = useProfile();
+  const {
+    status: profileStatus, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
+  } = useMatriculantProfile({ enabled: !!session && role === "student" });
+  const hasProfile = profileStatus === 'ready';
   const [requests, setRequests] = useState(SEED_REQUESTS);
   const [applications, setApplications] = useState(SEED_APPLICATIONS);
   const [notifications, setNotifications] = useState([
@@ -178,13 +182,6 @@ export default function NjinjiCareerGuidance() {
     tab, setTab, route, setRoute, exploreTab, setExploreTab, fieldFilter, setFieldFilter,
     go, NAV, SECONDARY, isStudent, exploreTabs,
   } = useAppNavigation({ role, t, onSms: () => setSmsOpen(true) });
-
-  /* APS subjects follow the selected demo profile */
-  const [subjects, setSubjects] = useState(DEMO_PROFILES.thandi.subjects);
-  const [mathsIsPure, setMathsIsPure] = useState(true);
-  useEffect(() => {
-    if (pitchMode) setSubjects(DEMO_PROFILES.thandi.subjects);
-  }, [pitchMode]);
 
   /* ---- responsive detection, connectivity and install prompt ------- */
   useEffect(() => {
@@ -229,9 +226,6 @@ export default function NjinjiCareerGuidance() {
       if (!saved) return;
       if (saved.profile) setProfile(saved.profile);
       if (saved.settings) setSettings((s) => ({ ...s, ...saved.settings }));
-      if (saved.subjects) setSubjects(saved.subjects);
-      if (typeof saved.mathsIsPure === "boolean") setMathsIsPure(saved.mathsIsPure);
-      if (typeof saved.pitchMode === "boolean") setPitchMode(saved.pitchMode);
       if (saved.savedAt) setSavedAt(saved.savedAt);
     };
     /* IndexedDB survives more aggressive storage pressure than localStorage,
@@ -239,19 +233,22 @@ export default function NjinjiCareerGuidance() {
     idbGet(STORE_KEY).then((v) => apply(v || storage.read())).catch(() => apply(storage.read()));
   }, []);
 
-  /* ---- persist whenever "Save for offline viewing" is on ----------- */
+  /* ---- persist whenever "Save for offline viewing" is on -----------
+     Subjects/mathsIsPure aren't cached here — they're real backend data,
+     refetched fresh by useMatriculantProfile on every load; caching a stale
+     local copy would risk overwriting fresher real data on rehydrate. */
   const persist = useCallback(() => {
-    const payload = { profile, settings, subjects, mathsIsPure, pitchMode, savedAt: Date.now() };
+    const payload = { profile, settings, savedAt: Date.now() };
     storage.write(payload);
     idbSet(STORE_KEY, payload).catch(() => { /* localStorage already has it */ });
     setSavedAt(payload.savedAt);
     return payload.savedAt;
-  }, [profile, settings, subjects, mathsIsPure, pitchMode]);
+  }, [profile, settings]);
 
   useEffect(() => {
     if (!settings.saveOffline) return;
     persist();
-  }, [settings.saveOffline, profile, subjects, mathsIsPure, pitchMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [settings.saveOffline, profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const aps = useMemo(
     () => subjects.filter((s) => !s.excluded).map((s) => toLevel(s.pct))
@@ -281,7 +278,7 @@ export default function NjinjiCareerGuidance() {
     [ctx]
   );
   const gr9Packages = useMemo(
-    () => (learner.gr9Marks ? chooseSubjects(learner.gr9Marks, []) : null),
+    () => (learner?.gr9Marks ? chooseSubjects(learner.gr9Marks, []) : null),
     [learner]
   );
 
@@ -402,31 +399,42 @@ export default function NjinjiCareerGuidance() {
           }} />
       )}
 
-      {session && route && renderOverlay()}
+      {session && isStudent && profileStatus === 'loading' && (
+        <div className="flex min-h-full items-center justify-center p-8 text-sm text-slate-600">Loading your profile…</div>
+      )}
 
-      {session && !route && tab === "approvals" && (
+      {session && isStudent && profileStatus === 'no-profile' && (
+        <OnboardingScreen
+          onSubmit={createProfile}
+          onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
+        />
+      )}
+
+      {session && (!isStudent || hasProfile) && route && renderOverlay()}
+
+      {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
         <AdminApprovals applications={applications} setApplications={setApplications} />
       )}
 
-      {session && !route && tab === "analytics" && <AdminAnalytics liveAps={aps} />}
+      {session && (!isStudent || hasProfile) && !route && tab === "analytics" && <AdminAnalytics liveAps={aps} />}
 
-      {session && !route && tab === "workspace" && (
+      {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
         <MentorWorkspace session={session} requests={requests} setRequests={setRequests}
           application={applications.find((a) => a.id === session.applicationId) || null}
           onVerify={() => setVerifying(true)} />
       )}
 
-      {session && !route && tab === "dashboard" && (
+      {session && hasProfile && !route && tab === "dashboard" && (
         <Dashboard t={t} learner={learner} profile={profile} go={go} notifications={notifications}
           offline={settings.offline} aps={aps} eligibleCount={eligibleCount}
           onScan={() => setScanOpen(true)} scanned={scanned} onSms={() => setSmsOpen(true)}
           journey={journey} />
       )}
 
-      {session && !route && tab === "aps" && (
+      {session && hasProfile && !route && tab === "aps" && (
         learner.grade === 9 ? (
           <Screen title="APS starts in Grade 10"
-            subtitle="Sipho is still choosing subjects, so there is no NSC score yet. Switch Pitch Mode to Thandi to see the calculator with Grade 12 marks.">
+            subtitle="You're still choosing subjects, so there's no NSC score yet.">
             <button onClick={() => go("tool:chooser")}
               className="w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white">
               Open the Subject Chooser instead
@@ -439,7 +447,7 @@ export default function NjinjiCareerGuidance() {
         )
       )}
 
-      {session && !route && tab === "courses" && (
+      {session && (!isStudent || hasProfile) && !route && tab === "courses" && (
         <div className="p-4 pb-6">
           <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
             {exploreTabs.map((x) => (
@@ -462,7 +470,7 @@ export default function NjinjiCareerGuidance() {
         </div>
       )}
 
-      {session && !route && tab === "mentors" && (
+      {session && !route && tab === "mentors" && isStudent && hasProfile && (
         <MentorHub learner={learner} aps={learner.grade === 9 ? null : aps}
           requests={requests}
           setRequests={(updater) => {
@@ -471,20 +479,20 @@ export default function NjinjiCareerGuidance() {
           }} />
       )}
 
-      {session && !route && tab === "advisor" && (
+      {session && (!isStudent || hasProfile) && !route && tab === "advisor" && (
         <Advisor appLang={settings.lang} profile={profile} offline={settings.offline} />
       )}
 
-      {session && !route && tab === "tools" && <ToolsHub t={t} go={go} profile={profile} />}
+      {session && hasProfile && !route && tab === "tools" && <ToolsHub t={t} go={go} profile={profile} />}
 
-      {session && !route && tab === "offline" && (
+      {session && hasProfile && !route && tab === "offline" && (
         <OfflineCentre t={t} settings={settings} setSettings={setSettings} packs={packs} togglePack={togglePack}
           profile={profile} learner={learner} aps={aps} savedAt={savedAt} online={online}
           installable={!!installEvent} onInstall={install} onSaveNow={persist}
           storageKind={storage.available ? "IndexedDB with localStorage backup" : "in-memory (this browser blocks storage)"} />
       )}
 
-      {session && !route && tab === "me" && (
+      {session && (!isStudent || hasProfile) && !route && tab === "me" && (
         <MeScreen t={t} session={session} profile={profile} setProfile={setProfile}
           settings={settings} setSettings={setSettings} notifications={notifications}
           markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
@@ -547,7 +555,6 @@ export default function NjinjiCareerGuidance() {
       shellWidth={shellWidth} shellHeight={shellHeight} shellClass={shellClass} layout={layout}
       session={session} isStudent={isStudent} role={role} setRole={setRole} setSession={setSession} setRoute={setRoute}
       textScale={settings.textScale} body={body} modals={modals}
-      pitchMode={pitchMode} onTogglePitch={() => { setPitchMode((v) => !v); setTab("dashboard"); setRoute(null); }}
       {...sharedHeaderProps}
       showNextStep={showNextStep} journey={journey} go={go} onDismissNextBar={() => setShowNextBar(false)}
       NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
@@ -560,7 +567,6 @@ export default function NjinjiCareerGuidance() {
       NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
       requests={requests} applications={applications}
       isStudent={isStudent} learner={learner} journey={journey} go={go}
-      pitchMode={pitchMode} onTogglePitch={() => { setPitchMode((v) => !v); setTab("dashboard"); setRoute(null); }}
       onSendSms={() => setSmsOpen(true)}
       {...sharedHeaderProps}
       textScale={settings.textScale} body={body} modals={modals}

@@ -8,7 +8,6 @@ import { ROLES } from '../../data/roles';
 import { Progress } from '../ui/Progress';
 import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
 import { ColourRule } from './ColourRule';
-import { PitchToggle } from './PitchToggle';
 import { HeaderActions } from './HeaderActions';
 import { OfflinePill } from './OfflinePill';
 
@@ -17,7 +16,7 @@ export function DesktopShell({
   NAV, SECONDARY, tab, setTab, route,
   requests, applications,
   isStudent, learner, journey, t, go,
-  pitchMode, onTogglePitch, onSendSms,
+  onSendSms,
   offline, saveOffline, unread, onOpenNotifications, online, onGoOffline,
   textScale, body, modals,
 }) {
@@ -95,7 +94,6 @@ export function DesktopShell({
             )}
 
             <div className="space-y-2 border-t border-slate-200 p-3">
-              {isStudent && <PitchToggle compact pitchMode={pitchMode} onToggle={onTogglePitch} />}
               {isStudent && (
                 <button onClick={onSendSms}
                   className="flex w-full items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-semibold text-slate-900">
@@ -127,7 +125,8 @@ export function DesktopShell({
             <p className="text-[11px] text-slate-600">
               {!role ? "Choose how you are joining"
                 : !session ? `${ROLES[role].label} · sign in to continue`
-                : isStudent ? `${learner.name} · Grade ${learner.grade} · ${learner.school}`
+                : isStudent
+                  ? (learner ? `${learner.name} · Grade ${learner.grade} · ${learner.school || "—"}` : "Setting up your profile…")
                 : `${ROLES[role].label}${session.verification?.tiers?.length ? " · verified" : " · verification pending"}`}
             </p>
           </div>
