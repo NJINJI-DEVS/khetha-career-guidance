@@ -8,11 +8,10 @@ namespace CareerAdvisor.Api.Services;
 /// Real server-side admin authorization. The frontend's `role` is pure UI
 /// navigation state with zero enforcement (see useAppNavigation.js) — this is
 /// the actual gate for admin-only actions (approving/rejecting mentor
-/// applications), backed by the user_roles table.
+/// applications), backed exclusively by active entries in the admins table.
 ///
-/// Bootstrapping the first admin: once you have a real Supabase Auth account you
-/// want as admin, run this once in the Supabase SQL editor:
-///   INSERT INTO user_roles (user_id, role) VALUES ('&lt;their-auth-user-id&gt;', 'admin');
+/// Provision administrators with the operator-only --provision-admin command.
+/// See backend/ADMIN-SETUP.md; public role claims cannot grant this permission.
 /// </summary>
 public class AdminRequirement : IAuthorizationRequirement { }
 
@@ -28,7 +27,7 @@ public class AdminAuthorizationHandler : AuthorizationHandler<AdminRequirement>
         if (subClaim is null || !Guid.TryParse(subClaim, out var userId))
             return;
 
-        var isAdmin = await _db.UserRoles.AnyAsync(r => r.UserId == userId && r.Role == "admin");
+        var isAdmin = await _db.Admins.AnyAsync(a => a.UserId == userId && a.IsActive);
         if (isAdmin)
             context.Succeed(requirement);
     }

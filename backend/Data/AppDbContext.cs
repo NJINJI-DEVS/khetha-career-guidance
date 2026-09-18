@@ -26,9 +26,12 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<Admin> Admins => Set<Admin>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Admin>().HasKey(a => a.UserId);
+        modelBuilder.Entity<Admin>().Property(a => a.Email).HasMaxLength(320);
         // Table AND column names are snake_case to match Postgres/Supabase convention
         // (see Program.cs's UseSnakeCaseNamingConvention()) — table names below match
         // that convention's output already, so no explicit ToTable() calls are needed.

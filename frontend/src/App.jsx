@@ -21,6 +21,7 @@ import { HorizontalScroller } from './components/ui/HorizontalScroller';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { AdminLogin } from './components/auth/AdminLogin';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
@@ -168,6 +169,7 @@ export default function NjinjiCareerGuidance() {
         accountRole = (await getMyAccountRole()).role;
       } catch (err) {
         if (err.status !== 404) throw err;
+        if (pickedRole === 'admin') throw new Error('Administrator accounts must be provisioned by the platform operator.');
         try {
           accountRole = (await claimAccountRole(pickedRole)).role;
         } catch (claimErr) {
@@ -181,7 +183,9 @@ export default function NjinjiCareerGuidance() {
       }
       setPendingRoleIssue(null);
       setSession({ ...authPayload, role: pickedRole });
-      if (ROLES[pickedRole].verifies) setVerifying(true);
+      setRole(accountRole);
+      setTab(accountRole === 'admin' ? 'approvals' : accountRole === 'student' ? 'dashboard' : 'workspace');
+      setRoute(null);
     } catch (err) {
       setPendingRoleIssue({ kind: 'error', message: err.message, pendingAuth: authPayload });
     }
@@ -191,7 +195,8 @@ export default function NjinjiCareerGuidance() {
     setPendingRoleIssue(null);
     setRole(actual);
     setSession({ ...pendingAuth, role: actual });
-    if (ROLES[actual].verifies) setVerifying(true);
+    setTab(actual === 'admin' ? 'approvals' : actual === 'student' ? 'dashboard' : 'workspace');
+    setRoute(null);
   };
   const abandonRoleIssue = async () => {
     await signOut();
@@ -242,12 +247,19 @@ export default function NjinjiCareerGuidance() {
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
     useHelpRequests({ enabled: !!session && (isMentorOrAdmin || hasProfile) });
-  const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
+  const { applications, loading: applicationsLoading, error: applicationsError, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
     useMentorApplications({ enabled: !!session && role === "admin", scope: "admin" });
-  const { applications: myApplications, refetch: refetchMyApplications } =
+  const { applications: myApplications, loading: myApplicationsLoading, error: myApplicationsError, refetch: refetchMyApplications } =
     useMentorApplications({ enabled: !!session && (role === "mentor" || role === "professional"), scope: "mine" });
   const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } = useNotifications({ enabled: !!session });
   const myApplication = myApplications[0] || null;
+  const promptedForApplication = useRef(false);
+  useEffect(() => {
+    if (!session) { promptedForApplication.current = false; return; }
+    if (!['mentor', 'professional'].includes(role) || myApplicationsLoading || myApplicationsError || promptedForApplication.current) return;
+    promptedForApplication.current = true;
+    if (!myApplication) setVerifying(true);
+  }, [session, role, myApplicationsLoading, myApplicationsError, myApplication, setVerifying]);
 
   /* Deadline/event reminders the learner triggers themselves (favouriting a
      qualification, tapping "remind me" on an event) have no backend endpoint
@@ -524,8 +536,11 @@ export default function NjinjiCareerGuidance() {
         <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))} onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />
       )}
 
-      {!pendingRoleIssue && role && !session && (
-        <AuthScreen role={role} onBack={() => setRole(null)}
+      {!pendingRoleIssue && role === 'admin' && !session && (
+        <AdminLogin onBack={() => setRole(null)} onAuthenticated={(s) => resolveAccountRole('admin', s)} />
+      )}
+      {!pendingRoleIssue && role && role !== 'admin' && !session && (
+        <AuthScreen key={role} role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onAuthenticated={(s) => resolveAccountRole(role, s)} />
       )}
@@ -560,14 +575,15 @@ export default function NjinjiCareerGuidance() {
 
       {session && (!isStudent || hasProfile) && route && renderOverlay()}
 
-      {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
-        <AdminApprovals applications={applications} onApprove={approveApplication} onReject={rejectApplication} />
+      {session?.role === 'admin' && role === 'admin' && !route && tab === "approvals" && (
+        <AdminApprovals applications={applications} loading={applicationsLoading} error={applicationsError} onRefresh={refetchApplications} onApprove={approveApplication} onReject={rejectApplication} />
       )}
 
-      {session && (!isStudent || hasProfile) && !route && tab === "analytics" && <AdminAnalytics />}
+      {session?.role === 'admin' && role === 'admin' && !route && tab === "analytics" && <AdminAnalytics />}
 
-      {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
+      {session && ['mentor', 'professional'].includes(role) && !route && tab === "workspace" && (
         <MentorWorkspace session={session} requests={requests} onRespond={respondToHelpRequest}
+          loading={myApplicationsLoading} error={myApplicationsError} onRefresh={refetchMyApplications}
           onIssueLetter={issueLetter} application={myApplication} onVerify={() => setVerifying(true)} />
       )}
 
@@ -650,7 +666,7 @@ export default function NjinjiCareerGuidance() {
 
   const modals = session && (
     <>
-      {verifying && (
+      {verifying && ['mentor', 'professional'].includes(role) && !myApplicationsLoading && !myApplicationsError && (!myApplication || myApplication.status === 'rejected') && (
         <VerificationFlow role={role}
           onCancel={() => setVerifying(false)}
           onComplete={async (v) => {
@@ -658,7 +674,6 @@ export default function NjinjiCareerGuidance() {
               role,
               fullName: v.fullName,
               idNumber: v.idNumber,
-              idDocumentFilename: v.idDoc,
               workEmail: v.workEmail,
               institution: v.institution || "",
               linkedIn: v.linkedin,
@@ -667,14 +682,12 @@ export default function NjinjiCareerGuidance() {
               claimsTeacher: false,
               partnerCode: v.partnerCode,
               partnerName: v.partnerName,
-              transcriptFilename: v.transcript,
-              field: "",
-              subjects: [],
-              claim: "Submitted through the in-app verification flow.",
+              field: v.field,
+              subjects: v.subjects.split(',').map((s) => s.trim()).filter(Boolean),
+              claim: v.claim,
               submitSeconds: v.submitSeconds,
-            });
+            }, v.idDoc, v.transcript);
             await refetchMyApplications();
-            setSession((s) => ({ ...s, verification: v }));
             setVerifying(false);
           }} />
       )}

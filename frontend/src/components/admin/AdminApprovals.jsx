@@ -21,9 +21,12 @@ import { VettingGuide } from './VettingGuide';
    ================================================================== */
 
 /* ---- Queue --------------------------------------------------------- */
-export function AdminApprovals({ applications, onApprove, onReject }) {
+export function AdminApprovals({ applications, onApprove, onReject, loading, error, onRefresh }) {
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("pending");
+
+  if (loading) return <p className="p-6 text-sm text-slate-600">Loading applications…</p>;
+  if (error) return <div className="space-y-3 p-6"><p role="alert" className="text-sm text-red-700">Couldn't load applications. {error.status === 403 ? 'Administrator access is required.' : 'Please try again.'}</p><button onClick={onRefresh} className="rounded-lg border p-2">Retry</button></div>;
 
   const open = applications.find((a) => a.id === openId);
   if (open) {
@@ -43,6 +46,7 @@ export function AdminApprovals({ applications, onApprove, onReject }) {
 
   return (
     <div className="space-y-4 p-4 pb-6">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold text-slate-900">Administrator dashboard</h2><button onClick={onRefresh} className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold">Refresh</button></div>
       <div className="rounded-2xl k-grad-green p-4 text-white">
         <p className="text-xs k-tx-BFE5D4">Mentor and professional applications</p>
         <p className="mt-0.5 text-lg font-semibold">{counts.pending} awaiting your decision</p>

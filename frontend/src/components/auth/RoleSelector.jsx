@@ -39,7 +39,7 @@ export function RoleSelector({ t, lang, setLang, onPick }) {
       </p>
 
       <div className="mt-6 grid gap-2.5">
-        {Object.values(ROLES).map((r) => {
+        {Object.values(ROLES).filter((r) => r.key !== 'admin').map((r) => {
           const Icon = r.icon;
           return (
             <button key={r.key} onClick={() => onPick(r.key)}
@@ -62,6 +62,12 @@ export function RoleSelector({ t, lang, setLang, onPick }) {
       </div>
 
       <div className="mt-auto pt-8">
+        <div className="mb-3 flex justify-end">
+          <button type="button" onClick={() => onPick('admin')} aria-label="Administrator login" title="Administrator login"
+            className="rounded-lg p-3 text-slate-500 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-500">
+            <ShieldCheck className="h-5 w-5" />
+          </button>
+        </div>
         <p className="flex items-start gap-2 rounded-xl k-bg-E7F4EE p-3 text-[11px] leading-relaxed k-tx-005A36">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           {t("vettedNote")}

@@ -1,42 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  submitMentorApplication, getMyMentorApplications, getPendingMentorApplications,
+  submitMentorApplication, getMyMentorApplications, getAdminMentorApplications,
   approveMentorApplication, rejectMentorApplication,
 } from '../lib/api';
 
-// `scope: "admin"` lists all pending applications (AdminOnly on the backend);
+// `scope: "admin"` lists pending applications and decision history (AdminOnly);
 // `scope: "mine"` lists the caller's own submitted applications.
 export function useMentorApplications({ enabled, scope }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const refetch = () => {
+  const generation = useRef(0);
+  const hasLoaded = useRef(false);
+  const refetch = useCallback(async () => {
     if (!enabled) return;
-    setLoading(true);
-    const fetcher = scope === 'admin' ? getPendingMentorApplications : getMyMentorApplications;
-    fetcher()
-      .then((data) => { setApplications(data); setError(null); })
-      .catch((err) => setError(err))
-      .finally(() => setLoading(false));
-  };
+    const current = ++generation.current;
+    const fetcher = scope === 'admin' ? getAdminMentorApplications : getMyMentorApplications;
+    try {
+      const data = await fetcher();
+      if (current === generation.current) { setApplications(data); setError(null); }
+    } catch (err) {
+      if (current === generation.current) setError(err);
+    } finally {
+      if (current === generation.current) { hasLoaded.current = true; setLoading(false); }
+    }
+  }, [enabled, scope]);
 
-  useEffect(refetch, [enabled, scope]);
-
-  const submit = async (application) => {
-    await submitMentorApplication(application);
+  useEffect(() => {
+    setApplications([]); setError(null); setLoading(enabled);
+    if (!enabled) return;
     refetch();
+    const refresh = () => { if (document.visibilityState === 'visible') refetch(); };
+    const timer = setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    return () => { ++generation.current; hasLoaded.current = false; clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [enabled, refetch]);
+
+  const submit = async (application, idDocument, transcript) => {
+    await submitMentorApplication(application, idDocument, transcript);
+    await refetch();
   };
 
   const approve = async (id) => {
     await approveMentorApplication(id);
-    refetch();
+    await refetch();
   };
 
   const reject = async (id) => {
     await rejectMentorApplication(id);
-    refetch();
+    await refetch();
   };
 
-  return { applications, loading, error, refetch, submit, approve, reject };
+  return { applications: enabled && hasLoaded.current ? applications : [], loading: enabled && (loading || !hasLoaded.current), error, refetch, submit, approve, reject };
 }
