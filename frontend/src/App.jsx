@@ -1,57 +1,17 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Home, Compass, Wrench, MessageCircle, User, Calculator, Search, Camera, GraduationCap, Briefcase, FlaskConical, ShieldCheck, CalendarClock, ChevronRight, ChevronLeft, Sparkles, Send, Loader2, X, BookOpen, MapPin, Award, AlertTriangle, CheckCircle2, Building2, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, Smartphone, KeyRound, LogOut, Heart, Bell, BellRing, Download, WifiOff, Type, Contrast, Languages, Trash2, FileDown, Plug, RefreshCw, Accessibility, ClipboardList, Target, Users, TrendingUp, CircleHelp, PhoneCall, MessageSquare, CalendarDays, Star, Info, Check } from 'lucide-react';
-import { THEME, KHETHA } from './theme/tokens';
-import { LANGUAGES, STRINGS } from './data/i18n';
-import { NSC_BANDS, SUBJECT_LABELS } from './data/subjects';
-import { FIELDS, FIELD } from './data/fields';
-import { OCCUPATIONS, occById } from './data/occupations';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { THEME } from './theme/tokens';
 import { QUALIFICATIONS, qualById } from './data/qualifications';
-import { PROVIDER_TYPES, TYPE_COLOR, PROVIDERS, providerById } from './data/providers';
-import { CHANNELS, EVENTS, FAQS } from './data/outreach';
+import { providerById } from './data/providers';
 import { DEMO_PROFILES } from './data/demoProfiles';
-import { MENTOR_ROLES, PARTNERS, partnerById, MENTORS, SEED_REQUESTS } from './data/mentors';
-import { RIASEC_TYPES, CAREER_CHOICE_Q, AGREE_SCALE, JOB_FIT_Q } from './data/assessments';
-import { PACKAGES } from './data/packages';
-import { ROLES, PARTNER_CODES, LICENCE_BODIES, TIERS } from './data/roles';
-import { OTP_LENGTH, DEMO_CODE, CONSENT_ITEMS } from './data/auth';
-import { JOURNEY } from './data/journey';
-import { VIEWPORTS } from './data/viewports';
-import { VERDICT_STYLE, LEVEL_STYLE } from './data/verdictStyles';
-import { SEED_APPLICATIONS, VETTING_GUIDE } from './data/seedApplications';
-import { TELEMETRY } from './data/telemetry';
-import { GREETING, SCRIPTS, FALLBACK } from './data/advisorScript';
-import { toLevel, bandLabel } from './engines/levels';
-import { scoreCareerChoice } from './engines/careerChoice';
-import { scoreJobFit } from './engines/jobFit';
+import { SEED_REQUESTS } from './data/mentors';
+import { ROLES } from './data/roles';
+import { SEED_APPLICATIONS } from './data/seedApplications';
+import { toLevel } from './engines/levels';
 import { chooseSubjects, eligibility } from './engines/subjects';
-import { checkSaId } from './engines/saId';
-import { riskFlags } from './engines/riskFlags';
-import { redact } from './engines/redact';
-import { buildSmsSummary } from './engines/smsSummary';
-import { fmt, pct } from './engines/format';
-import { idbOpen, idbGet, idbSet } from './services/idb';
+import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useT } from './hooks/useT';
-import { Pill } from './components/ui/Pill';
-import { SectionTitle } from './components/ui/SectionTitle';
 import { Screen } from './components/ui/Screen';
-import { FavouriteButton } from './components/ui/FavouriteButton';
-import { Likert } from './components/ui/Likert';
-import { Progress } from './components/ui/Progress';
-import { EmptyState } from './components/ui/EmptyState';
-import { DhetArms, KhethaWordmark, SaStripe } from './components/ui/BrandMarks';
-import { TierBadges } from './components/ui/TierBadges';
-import { LanguagePicker } from './components/ui/LanguagePicker';
-import { GoogleMark, AppleMark } from './components/ui/SocialMarks';
-import { ModalShell } from './components/ui/ModalShell';
-import { SearchBar } from './components/ui/SearchBar';
-import { Chips } from './components/ui/Chips';
-import { VerificationBadge } from './components/ui/VerificationBadge';
-import { RoadmapCallout } from './components/ui/RoadmapCallout';
-import { StatCard } from './components/ui/StatCard';
-import { BarRow } from './components/ui/BarRow';
-import { Donut } from './components/ui/Donut';
-import { Panel } from './components/ui/Panel';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
@@ -60,14 +20,8 @@ import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
 import { ViewportSwitcher } from './components/layout/ViewportSwitcher';
 import { CareerDetail } from './components/explore/CareerDetail';
 import { QualDetail } from './components/explore/QualDetail';
-import { MentorChat } from './components/mentor/MentorChat';
-import { RequestLetterModal } from './components/mentor/RequestLetterModal';
-import { RecommendationLetterModal } from './components/mentor/RecommendationLetterModal';
-import { ApplicationDetail } from './components/admin/ApplicationDetail';
-import { VettingGuide } from './components/admin/VettingGuide';
 import { Advisor } from './components/advisor/Advisor';
 import { useJourney } from './hooks/useJourney';
-import { NextStepBar } from './components/learner/NextStepBar';
 import { OfflineCentre } from './components/learner/OfflineCentre';
 import { Dashboard } from './components/learner/Dashboard';
 import { SubjectChooser } from './components/learner/SubjectChooser';
@@ -83,6 +37,9 @@ import { MentorHub } from './components/mentor/MentorHub';
 import { MentorWorkspace } from './components/mentor/MentorWorkspace';
 import { AdminApprovals } from './components/admin/AdminApprovals';
 import { AdminAnalytics } from './components/admin/AdminAnalytics';
+import { useAppNavigation } from './hooks/useAppNavigation';
+import { MobileShell } from './components/layout/MobileShell';
+import { DesktopShell } from './components/layout/DesktopShell';
 
 
 /* ==================================================================
@@ -187,10 +144,6 @@ export default function NjinjiCareerGuidance() {
   const [role, setRole] = useState(null);
   const [session, setSession] = useState(null);
   const [verifying, setVerifying] = useState(false);
-  const [tab, setTab] = useState("dashboard");
-  const [route, setRoute] = useState(null);
-  const [exploreTab, setExploreTab] = useState("careers");
-  const [fieldFilter, setFieldFilter] = useState("all");
 
   /* Pitch Mode: false = Sipho (Grade 9), true = Thandi (Grade 12) */
   const [pitchMode, setPitchMode] = useState(true);
@@ -229,6 +182,11 @@ export default function NjinjiCareerGuidance() {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [smsOpen, setSmsOpen] = useState(false);
+
+  const {
+    tab, setTab, route, setRoute, exploreTab, setExploreTab, fieldFilter, setFieldFilter,
+    go, NAV, SECONDARY, isStudent, exploreTabs,
+  } = useAppNavigation({ role, t, onSms: () => setSmsOpen(true) });
 
   /* APS subjects follow the selected demo profile */
   const [subjects, setSubjects] = useState(DEMO_PROFILES.thandi.subjects);
@@ -359,62 +317,6 @@ export default function NjinjiCareerGuidance() {
 
   const unread = notifications.filter((n) => !n.read).length;
   const markAllRead = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
-
-  const go = (target) => {
-    if (target === "sms") { setSmsOpen(true); return; }
-    if (target === "offline") { setRoute(null); setTab("offline"); return; }
-    if (target.startsWith("tab:")) { setRoute(null); setTab(target.slice(4)); return; }
-    if (target.startsWith("explore:")) {
-      setRoute(null); setTab("courses"); setExploreTab(target.slice(8)); return;
-    }
-    if (target.startsWith("field:")) {
-      setRoute(null); setTab("courses"); setExploreTab("careers"); setFieldFilter(target.slice(6)); return;
-    }
-    if (target === "advice") { setRoute(null); setTab("courses"); setExploreTab("advice"); return; }
-    setRoute(target);
-  };
-
-  /* Primary navigation, rendered per role */
-  const NAV_BY_ROLE = {
-    student: [
-      { key: "dashboard", label: t("dashboard"), icon: Home },
-      { key: "aps", label: t("apsCalc"), short: t("shortAps"), icon: Calculator },
-      { key: "courses", label: t("courses"), icon: Compass },
-      { key: "mentors", label: t("mentorHub"), short: t("shortMentor"), icon: Users },
-      { key: "advisor", label: t("aiAdvisor"), short: t("aiAdvisor"), icon: MessageCircle },
-    ],
-    mentor: [
-      { key: "workspace", label: t("workspace"), icon: Home },
-      { key: "courses", label: t("courses"), icon: Compass },
-      { key: "advisor", label: t("aiAdvisor"), short: t("aiAdvisor"), icon: MessageCircle },
-      { key: "me", label: t("myProfile"), short: t("myProfile"), icon: User },
-    ],
-    admin: [
-      { key: "approvals", label: t("approvals"), icon: ClipboardList },
-      { key: "analytics", label: t("analytics"), icon: TrendingUp },
-      { key: "mentors", label: t("mentorNetwork"), short: t("shortMentor"), icon: Users },
-      { key: "courses", label: t("courses"), icon: Compass },
-      { key: "me", label: t("myProfile"), short: t("myProfile"), icon: User },
-    ],
-  };
-  NAV_BY_ROLE.professional = NAV_BY_ROLE.mentor;
-
-  const NAV = NAV_BY_ROLE[role] || NAV_BY_ROLE.student;
-  const SECONDARY = role === "student"
-    ? [{ key: "tools", label: t("careerTools"), icon: Wrench },
-       { key: "offline", label: t("offlineSaving"), icon: WifiOff },
-       { key: "me", label: t("myProfile"), icon: User }]
-    : role === "admin"
-      ? [{ key: "advisor", label: t("aiAdvisor"), icon: MessageCircle }]
-      : [{ key: "mentors", label: t("mentorNetwork"), icon: Users }];
-  const isStudent = role === "student";
-
-  const exploreTabs = [
-    { key: "careers", label: t("careers") },
-    { key: "quals", label: t("whatToStudy") },
-    { key: "providers", label: t("whereToStudy") },
-    { key: "advice", label: t("advice") },
-  ];
 
   const a11yCss = `
     @keyframes njinji-scan { from { top: 15%; } to { top: 78%; } }
@@ -631,64 +533,6 @@ export default function NjinjiCareerGuidance() {
     </>
   );
 
-  /* ---- masthead, shared by both layouts ---------------------------- */
-  const PitchToggle = ({ compact }) => (
-    <div className={`flex items-center justify-between gap-3 rounded-xl bg-slate-100 px-3 py-2 ${compact ? "" : "w-full"}`}>
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold text-slate-900">Pitch Mode</p>
-        <p className="truncate text-[10px] text-slate-600">
-          {pitchMode ? "Thandi · Grade 12, post-subject choice" : "Sipho · Grade 9, pre-subject choice"}
-        </p>
-      </div>
-      <button role="switch" aria-checked={pitchMode} aria-label="Switch demo learner"
-        onClick={() => { setPitchMode((v) => !v); setTab("dashboard"); setRoute(null); }}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${pitchMode ? "k-bg-D4AF37" : "bg-slate-400"}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${pitchMode ? "left-[22px]" : "left-0.5"}`} />
-      </button>
-    </div>
-  );
-
-  const HeaderActions = () => (
-    <div className="flex items-center gap-1.5">
-      {(settings.offline || settings.saveOffline) && (
-        <span className="flex items-center gap-1 rounded-full k-bg-FBF5E7 px-2.5 py-1.5 text-[10px] font-semibold k-tx-6B5307 ring-1 k-rg-E4CE8A">
-          <WifiOff className="h-3.5 w-3.5" />
-          {settings.offline ? "Offline Mode Active" : "Saved offline"}
-        </span>
-      )}
-      <button onClick={() => { setTab("me"); setRoute(null); }} aria-label={`Notifications, ${unread} unread`}
-        className="relative grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200">
-        <Bell className="h-4 w-4" />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full k-bg-B3261E px-1 text-[9px] font-bold text-white">
-            {unread}
-          </span>
-        )}
-      </button>
-    </div>
-  );
-
-  const DeptBar = ({ tight }) => (
-    <div className={`flex shrink-0 items-center gap-2.5 border-b-2 k-bd-00784A bg-white px-4 ${tight ? "py-2" : "py-2.5"}`}>
-      <DhetArms className="h-8" />
-      <div className="flex-1 leading-none">
-        <p className="text-[11px] font-semibold lowercase tracking-tight text-slate-900">higher education &amp; training</p>
-        <p className="mt-0.5 text-[8px] leading-tight text-slate-600">
-          Department of Higher Education and Training<br />Republic of South Africa
-        </p>
-      </div>
-      <KhethaWordmark className="h-6" />
-    </div>
-  );
-
-  const ColourRule = () => (
-    <div className="flex h-1.5 shrink-0">
-      <span className="flex-1 k-bg-005A36" /><span className="flex-1 k-bg-D4AF37" />
-      <span className="flex-1 k-bg-1E3A6E" /><span className="flex-1 k-bg-B3261E" />
-      <span className="flex-1 k-bg-0F172A" />
-    </div>
-  );
-
   /* Which shell to render: explicit preview choice wins over the media query */
   const layout = viewport === "auto" ? (wide ? "desktop" : "mobile") : viewport;
   const shellWidth = layout === "tablet" ? "max-w-3xl" : "max-w-md";
@@ -697,230 +541,39 @@ export default function NjinjiCareerGuidance() {
   const showNextStep =
     session && isStudent && showNextBar && !["dashboard"].includes(tab) && !route?.startsWith("tool:");
 
-  const OfflinePill = () =>
-    !online ? (
-      <span className="flex items-center gap-1 rounded-full k-bg-FBF5E7 px-2.5 py-1.5 text-[10px] font-semibold k-tx-6B5307 ring-1 k-rg-E4CE8A">
-        <WifiOff className="h-3.5 w-3.5" />Offline Mode Active
-      </span>
-    ) : (settings.offline || settings.saveOffline) ? (
-      <button onClick={() => go("offline")}
-        className="flex items-center gap-1 rounded-full k-bg-E7F4EE px-2.5 py-1.5 text-[10px] font-semibold k-tx-005A36 ring-1 k-rg-A8DCC5">
-        <Download className="h-3.5 w-3.5" />{t("saved")}
-      </button>
-    ) : null;
+  const sharedHeaderProps = {
+    offline: settings.offline,
+    saveOffline: settings.saveOffline,
+    unread,
+    onOpenNotifications: () => { setTab("me"); setRoute(null); },
+    online,
+    onGoOffline: () => go("offline"),
+    t,
+  };
 
   const mobileShell = (
-    <div className="flex min-h-screen items-center justify-center p-0 sm:p-6">
-      <div className={`relative flex h-screen w-full ${shellWidth} flex-col overflow-hidden bg-slate-50 shadow-2xl ${shellHeight} sm:rounded-[2.25rem] sm:border-[10px] sm:border-slate-900 ${shellClass}`}>
-        <div className="hidden justify-center bg-white pt-2 sm:flex">
-          <div className="h-1.5 w-24 rounded-full bg-slate-200" />
-        </div>
-
-        <DeptBar />
-
-        <div className="shrink-0 bg-white px-4 pb-3 pt-3">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Njinji Career Guidance</h1>
-              <p className="mt-1 text-[11px] leading-tight text-slate-600">
-                Department of Higher Education &amp; Training · NCAP modern gateway
-              </p>
-            </div>
-            {session && (
-              <div className="flex items-center gap-1.5">
-                <OfflinePill />
-                <HeaderActions />
-              </div>
-            )}
-          </div>
-          {session && isStudent && <div className="mt-3"><PitchToggle /></div>}
-          {session && !isStudent && (
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-white"
-                style={{ background: ROLES[role].color }}>
-                {React.createElement(ROLES[role].icon, { className: "h-3 w-3" })}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900">{ROLES[role].label}</span>
-              <button onClick={() => { setRole(null); setSession(null); setRoute(null); }}
-                className="shrink-0 text-[10px] font-semibold text-slate-600">Switch</button>
-            </div>
-          )}
-        </div>
-        <ColourRule />
-
-        <main className="flex-1 overflow-y-auto" style={{ zoom: settings.textScale }}>
-          <div className={layout === "tablet" ? "mx-auto w-full max-w-2xl" : ""}>{body}</div>
-        </main>
-
-        {showNextStep && <NextStepBar t={t} journey={journey} go={go} onDismiss={() => setShowNextBar(false)} />}
-
-        {session && (
-          <nav className="shrink-0 border-t border-slate-200 bg-white">
-            <div className="grid grid-cols-5">
-              {NAV.map((x) => {
-                const Icon = x.icon;
-                const active = tab === x.key && !route;
-                return (
-                  <button key={x.key} onClick={() => { setTab(x.key); setRoute(null); }}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex flex-col items-center gap-1 py-2.5 text-[10px] transition-colors ${
-                      active ? "font-semibold k-tx-005A36" : "font-medium text-slate-600"
-                    }`}>
-                    <Icon className={`h-5 w-5 ${active ? "stroke-[2.25]" : ""}`} />
-                    {x.short || x.label}
-                    <span className={`h-0.5 w-6 rounded-full ${active ? "k-bg-D4AF37" : "bg-transparent"}`} />
-                  </button>
-                );
-              })}
-              {NAV.length < 5 && SECONDARY.slice(0, 5 - NAV.length).map((x) => {
-                const Icon = x.icon;
-                const active = tab === x.key && !route;
-                return (
-                  <button key={x.key} onClick={() => { setTab(x.key); setRoute(null); }}
-                    className={`flex flex-col items-center gap-1 py-2.5 text-[10px] transition-colors ${
-                      active ? "font-semibold k-tx-005A36" : "font-medium text-slate-600"
-                    }`}>
-                    <Icon className="h-5 w-5" />
-                    {x.label.split(" ")[0]}
-                    <span className={`h-0.5 w-6 rounded-full ${active ? "k-bg-D4AF37" : "bg-transparent"}`} />
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        )}
-
-        {modals}
-      </div>
-    </div>
+    <MobileShell
+      shellWidth={shellWidth} shellHeight={shellHeight} shellClass={shellClass} layout={layout}
+      session={session} isStudent={isStudent} role={role} setRole={setRole} setSession={setSession} setRoute={setRoute}
+      textScale={settings.textScale} body={body} modals={modals}
+      pitchMode={pitchMode} onTogglePitch={() => { setPitchMode((v) => !v); setTab("dashboard"); setRoute(null); }}
+      {...sharedHeaderProps}
+      showNextStep={showNextStep} journey={journey} go={go} onDismissNextBar={() => setShowNextBar(false)}
+      NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
+    />
   );
 
   const desktopShell = (
-    <div className={`flex min-h-screen ${shellClass}`} style={{ background: THEME.bg }}>
-      <aside className="relative flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <DhetArms className="h-12" />
-          <p className="mt-3 text-sm font-semibold lowercase leading-tight tracking-tight text-slate-900">
-            higher education &amp; training
-          </p>
-          <p className="mt-1 text-[10px] leading-tight text-slate-600">Republic of South Africa</p>
-        </div>
-
-        <div className="px-5 py-4">
-          <h1 className="text-base font-bold leading-tight tracking-tight text-slate-900">Njinji Career Guidance</h1>
-          <p className="mt-1 text-[11px] leading-tight text-slate-600">NCAP modern gateway</p>
-          <div className="mt-3"><KhethaWordmark className="h-7" /></div>
-        </div>
-
-        {session && (
-          <>
-            <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-              {NAV.map((x) => {
-                const Icon = x.icon;
-                const active = tab === x.key && !route;
-                return (
-                  <button key={x.key} onClick={() => { setTab(x.key); setRoute(null); }}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                      active ? "k-bg-005A36 font-semibold text-white" : "font-medium text-slate-700 hover:bg-slate-100"
-                    }`}>
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">{x.label}</span>
-                    {x.key === "mentors" && requests.filter((r) => r.status === "pending").length > 0 && (
-                      <span className="grid h-5 min-w-5 place-items-center rounded-full k-bg-D4AF37 px-1 text-[10px] font-bold text-slate-900">
-                        {requests.filter((r) => r.status === "pending").length}
-                      </span>
-                    )}
-                    {x.key === "approvals" && applications.filter((a) => a.status === "pending").length > 0 && (
-                      <span className="grid h-5 min-w-5 place-items-center rounded-full k-bg-B3261E px-1 text-[10px] font-bold text-white">
-                        {applications.filter((a) => a.status === "pending").length}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-              <div className="my-3 border-t border-slate-200" />
-              {SECONDARY.map((x) => {
-                const Icon = x.icon;
-                const active = tab === x.key && !route;
-                return (
-                  <button key={x.key} onClick={() => { setTab(x.key); setRoute(null); }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                      active ? "bg-slate-900 font-semibold text-white" : "font-medium text-slate-700 hover:bg-slate-100"
-                    }`}>
-                    <Icon className="h-4 w-4 shrink-0" />{x.label}
-                  </button>
-                );
-              })}
-            </nav>
-
-            {isStudent && journey.next && (
-              <div className="mx-3 mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                  {t("stepOf", { n: journey.next.n, total: journey.total })}
-                </p>
-                <p className="mt-0.5 text-xs font-semibold leading-tight text-slate-900">{t(journey.next.labelKey)}</p>
-                <div className="mt-2"><Progress value={journey.completed} max={journey.total} color={THEME.gold} /></div>
-                <button onClick={() => go(journey.next.route)}
-                  className="mt-2 w-full rounded-lg k-bg-005A36 px-3 py-1.5 text-[11px] font-semibold text-white">
-                  {t("continueBtn")}
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-2 border-t border-slate-200 p-3">
-              {isStudent && <PitchToggle compact />}
-              {isStudent && (
-                <button onClick={() => setSmsOpen(true)}
-                  className="flex w-full items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-semibold text-slate-900">
-                  <MessageSquare className="h-3.5 w-3.5" />{t("sendSms")}
-                </button>
-              )}
-              <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-white"
-                  style={{ background: ROLES[role]?.color || THEME.primary }}>
-                  {React.createElement(ROLES[role]?.icon || User, { className: "h-3 w-3" })}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900">
-                  {ROLES[role]?.label}
-                </span>
-                <button onClick={() => { setRole(null); setSession(null); setRoute(null); }}
-                  className="shrink-0 text-[10px] font-semibold text-slate-600">Switch</button>
-              </div>
-            </div>
-          </>
-        )}
-      </aside>
-
-      <div className="relative flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-6 py-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold tracking-tight text-slate-900">
-              {(NAV.concat(SECONDARY).find((x) => x.key === tab) || {}).label || "Njinji Career Guidance"}
-            </h2>
-            <p className="text-[11px] text-slate-600">
-              {!role ? "Choose how you are joining"
-                : !session ? `${ROLES[role].label} · sign in to continue`
-                : isStudent ? `${learner.name} · Grade ${learner.grade} · ${learner.school}`
-                : `${ROLES[role].label}${session.verification?.tiers?.length ? " · verified" : " · verification pending"}`}
-            </p>
-          </div>
-          {session && (
-            <div className="flex items-center gap-1.5">
-              <OfflinePill />
-              <HeaderActions />
-            </div>
-          )}
-        </header>
-        <ColourRule />
-
-        <main className="flex-1 overflow-y-auto" style={{ zoom: settings.textScale }}>
-          <div className={tab === "advisor" ? "h-full" : "mx-auto w-full max-w-5xl"}>{body}</div>
-        </main>
-
-        {modals}
-      </div>
-    </div>
+    <DesktopShell
+      shellClass={shellClass} session={session} role={role} setRole={setRole} setSession={setSession} setRoute={setRoute}
+      NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
+      requests={requests} applications={applications}
+      isStudent={isStudent} learner={learner} journey={journey} go={go}
+      pitchMode={pitchMode} onTogglePitch={() => { setPitchMode((v) => !v); setTab("dashboard"); setRoute(null); }}
+      onSendSms={() => setSmsOpen(true)}
+      {...sharedHeaderProps}
+      textScale={settings.textScale} body={body} modals={modals}
+    />
   );
 
   return (
