@@ -142,7 +142,7 @@ export function DesktopShell({
         <ColourRule />
 
         <main className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
-          <div className={tab === "advisor" ? "h-full" : "mx-auto w-full max-w-5xl"}>{body}</div>
+          <div className={tab === "advisor" ? "mx-auto h-full w-full max-w-2xl" : "mx-auto w-full max-w-5xl"}>{body}</div>
         </main>
 
         {session && !(tab === "advisor" && !route) && (
