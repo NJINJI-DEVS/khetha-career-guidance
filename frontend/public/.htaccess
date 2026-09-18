@@ -1,0 +1,12 @@
+# Service worker must never be cached by the browser/CDN, or PWA updates
+# won't reach users until a hard refresh.
+<IfModule mod_headers.c>
+  <FilesMatch "^(sw\.js|registerSW\.js)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# Some Apache configs don't know the manifest MIME type by default.
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
