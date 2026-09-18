@@ -10,7 +10,7 @@ import { toLevel } from './engines/levels';
 import { chooseSubjects, eligibility } from './engines/subjects';
 import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
-import { useT } from './hooks/useT';
+import { useSettings } from './context/SettingsContext';
 import { Screen } from './components/ui/Screen';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
@@ -149,12 +149,7 @@ export default function NjinjiCareerGuidance() {
   const [pitchMode, setPitchMode] = useState(true);
   const learner = pitchMode ? DEMO_PROFILES.thandi : DEMO_PROFILES.sipho;
 
-  const [settings, setSettings] = useState({
-    lang: "en", textScale: 1, highContrast: false, reduceMotion: false,
-    simpleLanguage: false, offline: false, saveOffline: false,
-    notifyDeadlines: true, notifyEvents: true, notifyNsfas: true,
-  });
-  const t = useT(settings.lang);
+  const { settings, setSettings, t } = useSettings();
 
   const [profile, setProfile] = useState({
     favourites: [], careerChoice: null, jobFit: null, subjectResult: null,
