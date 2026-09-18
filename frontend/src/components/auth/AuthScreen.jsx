@@ -82,7 +82,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
 
       setBusy(true);
       const { data, error: err } = mode === "signup"
-        ? await signUpWithPassword(email, password)
+        ? await signUpWithPassword(email, password, role)
         : await signInWithPassword(email, password);
       setBusy(false);
 
@@ -103,7 +103,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
       if (!/^[6-8]/.test(d)) return setError("South African mobile numbers start with 6, 7 or 8.");
 
       setBusy(true);
-      const { error: err } = await signInWithPhoneOtp(`+27${d}`);
+      const { error: err } = await signInWithPhoneOtp(`+27${d}`, role);
       setBusy(false);
       if (err) return setError(friendlyError(err));
       setDigits(Array(OTP_LENGTH).fill("")); setResendIn(30); setStep("verify");
@@ -115,7 +115,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
   const startEmailOtp = async () => {
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address first.");
     setError(""); setBusy(true);
-    const { error: err } = await signInWithEmailOtp(email);
+    const { error: err } = await signInWithEmailOtp(email, role);
     setBusy(false);
     if (err) return setError(friendlyError(err));
     setMethod("emailOtp");

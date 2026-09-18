@@ -7,17 +7,21 @@ import { supabase } from '../lib/supabaseClient';
 export const signInWithPassword = (email, password) =>
   supabase.auth.signInWithPassword({ email, password });
 
-export const signUpWithPassword = (email, password) =>
-  supabase.auth.signUp({ email, password });
+// `account_role` is stored as account metadata at registration time so the
+// user's chosen journey is available in Supabase too. The API's `user_roles`
+// row remains the authorization source of truth and independently validates
+// which roles may be self-claimed.
+export const signUpWithPassword = (email, password, role) =>
+  supabase.auth.signUp({ email, password, options: { data: { account_role: role } } });
 
-export const signInWithEmailOtp = (email) =>
-  supabase.auth.signInWithOtp({ email });
+export const signInWithEmailOtp = (email, role) =>
+  supabase.auth.signInWithOtp({ email, options: { data: { account_role: role } } });
 
 export const verifyEmailOtp = (email, token) =>
   supabase.auth.verifyOtp({ email, token, type: 'email' });
 
-export const signInWithPhoneOtp = (phone) =>
-  supabase.auth.signInWithOtp({ phone });
+export const signInWithPhoneOtp = (phone, role) =>
+  supabase.auth.signInWithOtp({ phone, options: { data: { account_role: role } } });
 
 export const verifyPhoneOtp = (phone, token) =>
   supabase.auth.verifyOtp({ phone, token, type: 'sms' });
