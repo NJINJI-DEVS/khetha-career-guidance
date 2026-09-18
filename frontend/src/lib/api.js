@@ -88,6 +88,28 @@ export const searchSaqa = (q) =>
 export const searchOfo = (q) =>
   apiFetch(`/api/qualifications/ofo${q ? `?q=${encodeURIComponent(q)}` : ''}`);
 
+// --- Careers directory (OFO occupations) ---
+// Returns the same object shape as data/occupations.js — ofo, riasec, subjects,
+// tasks, demand, salary, context — plus `link` and `provenance`, so screens and
+// the matching engines can read either source without a translation layer.
+// Anonymous: a learner must be able to browse careers before creating an
+// account, and guest mode depends on it.
+
+export const listOccupations = ({ q, field, page = 1, pageSize = 24 } = {}) => {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (field && field !== 'all') params.set('field', field);
+  params.set('page', String(page));
+  params.set('pageSize', String(pageSize));
+  return apiFetch(`/api/occupations?${params.toString()}`);
+};
+
+export const getOccupation = (code) =>
+  apiFetch(`/api/occupations/${encodeURIComponent(code)}`);
+
+/** Occupation counts per career field, for directory filter chips. */
+export const getOccupationFields = () => apiFetch('/api/occupations/fields');
+
 // --- Mentor hub ---
 
 export const listMentors = ({ field, province, q } = {}) => {
