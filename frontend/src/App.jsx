@@ -734,7 +734,7 @@ export default function NjinjiCareerGuidance() {
     <div className="min-h-screen w-full bg-slate-200">
       <style>{a11yCss}</style>
       {layout === "desktop" ? desktopShell : mobileShell}
-      <ViewportSwitcher value={viewport} onChange={setViewport} />
+      {import.meta.env.DEV && <ViewportSwitcher value={viewport} onChange={setViewport} />}
     </div>
   );
 }
