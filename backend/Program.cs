@@ -60,6 +60,7 @@ builder.Services.AddScoped<ICourseMatchingService, CourseMatchingService>();
 builder.Services.AddScoped<IOfoImportService, OfoImportService>();
 builder.Services.AddScoped<ISaqaImportService, SaqaImportService>();
 builder.Services.AddHttpClient<IGovernmentPortalScraperService, GovernmentPortalScraperService>();
+builder.Services.AddHttpClient<IAdvisorService, AdvisorService>();
 builder.Services.AddScoped<ISaIdService, SaIdService>();
 builder.Services.AddScoped<IRiskFlagsService, RiskFlagsService>();
 builder.Services.AddScoped<IRedactionService, RedactionService>();
