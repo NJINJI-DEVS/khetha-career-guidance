@@ -38,7 +38,7 @@ export function RoleSelector({ t, lang, setLang, onPick }) {
         can reach them.
       </p>
 
-      <div className="mt-6 grid gap-2.5 lg:grid-cols-2">
+      <div className="mt-6 grid gap-2.5">
         {Object.values(ROLES).map((r) => {
           const Icon = r.icon;
           return (
