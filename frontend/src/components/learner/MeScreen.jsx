@@ -39,7 +39,11 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-semibold text-slate-900">{session.identity}</p>
-          <p className="text-xs text-slate-600">Khetha account · signed in with {session.method}</p>
+          <p className="text-xs text-slate-600">
+            {session.guest
+              ? "Guest — nothing stored off this device"
+              : `Khetha account · signed in with ${session.method}`}
+          </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Pill tone="green" icon={ShieldCheck}>2-step on</Pill>
             {session.consent?.ncap && <Pill tone="blue" icon={Plug}>NCAP synced</Pill>}

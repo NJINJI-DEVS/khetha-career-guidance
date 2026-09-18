@@ -1,13 +1,13 @@
 // Extracted from App.jsx (Stage 5 of the App.jsx split — see
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
-import { ChevronRight, ShieldCheck } from 'lucide-react';
+import { ChevronRight, ShieldCheck, Eye } from 'lucide-react';
 import { ROLES } from '../../data/roles';
 import { Pill } from '../ui/Pill';
 import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
 import { LanguagePicker } from '../ui/LanguagePicker';
 
-export function RoleSelector({ t, lang, setLang, onPick }) {
+export function RoleSelector({ t, lang, setLang, onPick, onGuest }) {
   return (
     <div className="flex min-h-full flex-col px-5 pb-6 pt-6">
       <div className="flex items-center gap-3">
@@ -60,6 +60,22 @@ export function RoleSelector({ t, lang, setLang, onPick }) {
           );
         })}
       </div>
+
+      {onGuest && (
+        <button onClick={onGuest}
+          className="mt-3 flex items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-left transition-colors hover:border-slate-400">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700">
+            <Eye className="h-5 w-5" />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Just looking around</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-600">
+              Explore the whole app with no account. Nothing is stored, and you can sign up later.
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
+        </button>
+      )}
 
       <div className="mt-auto pt-8">
         <p className="flex items-start gap-2 rounded-xl k-bg-E7F4EE p-3 text-[11px] leading-relaxed k-tx-005A36">

@@ -27,7 +27,7 @@ import {
    A1 / A2: consent, secure sign-in, two-step verification
    ================================================================== */
 
-export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) {
+export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, onGuest }) {
   const [step, setStep] = useState("choose");
   const [method, setMethod] = useState(null);
   const [mode, setMode] = useState("signin"); // email method only: "signin" | "signup"
@@ -252,6 +252,13 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
           <p className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-600">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />Opening secure sign-in
           </p>
+        )}
+
+        {onGuest && role === "student" && (
+          <button onClick={onGuest}
+            className="mt-4 w-full rounded-xl border border-dashed border-slate-300 bg-white py-3 text-xs font-semibold text-slate-900">
+            Look around first — no account needed
+          </button>
         )}
 
         <div className="mt-auto pt-8">

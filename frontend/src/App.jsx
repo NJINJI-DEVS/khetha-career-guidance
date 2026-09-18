@@ -23,6 +23,8 @@ import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
+import { GuestBanner, GuestGate } from './components/auth/GuestGate';
+import { GUEST_LEARNER, GUEST_SESSION } from './data/guestLearner';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
 import { ViewportSwitcher } from './components/layout/ViewportSwitcher';
@@ -201,11 +203,32 @@ export default function NjinjiCareerGuidance() {
   };
 
   const { profile, setProfile } = useProfile();
+
+  /* Guest mode: the whole app, no account, nothing leaving the device. Every
+     backend hook is disabled and a stand-in learner supplies the shape the
+     screens expect, so none of them need a "signed out" branch. */
+  const isGuest = !!session?.guest;
+  // Dropping the guest session leaves `role` as student, so the auth screen is
+  // what renders next — the learner picks up exactly where they were heading.
+  const enterGuest = () => { setRole("student"); setSession(GUEST_SESSION); };
+  const leaveGuest = () => setSession(null);
+
   const {
-    status: profileStatus, profileError, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
+    status: profileStatus, profileError, learner: realLearner,
+    subjects: realSubjects, setSubjects: setRealSubjects,
+    mathsIsPure: realMathsIsPure, setMathsIsPure: setRealMathsIsPure, createProfile,
     refetch: refetchProfile, appProfile, saveAppProfile,
-  } = useMatriculantProfile({ enabled: !!session && role === "student" });
-  const hasProfile = profileStatus === 'ready';
+  } = useMatriculantProfile({ enabled: !!session && !isGuest && role === "student" });
+
+  const [guestSubjects, setGuestSubjects] = useState(GUEST_LEARNER.subjects);
+  const [guestMathsIsPure, setGuestMathsIsPure] = useState(true);
+
+  const learner = isGuest ? GUEST_LEARNER : realLearner;
+  const subjects = isGuest ? guestSubjects : realSubjects;
+  const setSubjects = isGuest ? setGuestSubjects : setRealSubjects;
+  const mathsIsPure = isGuest ? guestMathsIsPure : realMathsIsPure;
+  const setMathsIsPure = isGuest ? setGuestMathsIsPure : setRealMathsIsPure;
+  const hasProfile = isGuest || profileStatus === 'ready';
 
   /* profile (favourites, Career Choice/Job Fit/Subject Chooser results, which
      "next step" nudges fired) used to live only in React state — reset to
@@ -216,18 +239,18 @@ export default function NjinjiCareerGuidance() {
      debounce-saved back on every change — same pattern as subjects/marks. */
   const appProfileSeeded = useRef(false);
   useEffect(() => {
-    if (!hasProfile || appProfileSeeded.current) return;
+    if (isGuest || !hasProfile || appProfileSeeded.current) return;
     appProfileSeeded.current = true;
     if (appProfile) setProfile((p) => ({ ...p, ...appProfile }));
   }, [hasProfile, appProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!hasProfile || !appProfileSeeded.current) return undefined;
+    if (isGuest || !hasProfile || !appProfileSeeded.current) return undefined;
     const timer = setTimeout(() => {
       saveAppProfile(profile).catch((err) => console.error('Failed to save profile', err));
     }, 800);
     return () => clearTimeout(timer);
-  }, [profile, hasProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profile, hasProfile, isGuest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Signing out never used to matter, since profile reset itself on the next
   // reload anyway — now that it's real, persisted, per-account data, leaving
@@ -242,12 +265,13 @@ export default function NjinjiCareerGuidance() {
   const isMentorOrAdmin = !!session && role !== "student";
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
-    useHelpRequests({ enabled: !!session && (isMentorOrAdmin || hasProfile) });
+    useHelpRequests({ enabled: !!session && !isGuest && (isMentorOrAdmin || hasProfile) });
   const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
-    useMentorApplications({ enabled: !!session && role === "admin", scope: "admin" });
+    useMentorApplications({ enabled: !!session && !isGuest && role === "admin", scope: "admin" });
   const { applications: myApplications, refetch: refetchMyApplications } =
-    useMentorApplications({ enabled: !!session && (role === "mentor" || role === "professional"), scope: "mine" });
-  const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } = useNotifications({ enabled: !!session });
+    useMentorApplications({ enabled: !!session && !isGuest && (role === "mentor" || role === "professional"), scope: "mine" });
+  const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } =
+    useNotifications({ enabled: !!session && !isGuest });
   const myApplication = myApplications[0] || null;
 
   /* Deadline/event reminders the learner triggers themselves (favouriting a
@@ -499,6 +523,8 @@ export default function NjinjiCareerGuidance() {
 
   const body = (
     <>
+      {isGuest && <GuestBanner onCreateAccount={leaveGuest} />}
+
       {pendingRoleIssue?.kind === 'mismatch' && (
         <div className="flex min-h-full flex-col items-center justify-center gap-3 p-8 text-center">
           <p className="text-sm font-semibold text-slate-900">This account is a {ROLES[pendingRoleIssue.actual]?.label || pendingRoleIssue.actual}</p>
@@ -532,27 +558,30 @@ export default function NjinjiCareerGuidance() {
       )}
 
       {!pendingRoleIssue && !role && (
-        <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))} onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />
+        <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
+          onGuest={enterGuest}
+          onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />
       )}
 
       {!pendingRoleIssue && role && !session && (
         <AuthScreen role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
+          onGuest={enterGuest}
           onAuthenticated={(s) => resolveAccountRole(role, s)} />
       )}
 
-      {session && isStudent && profileStatus === 'loading' && (
+      {session && isStudent && !isGuest && profileStatus === 'loading' && (
         <div className="flex min-h-full items-center justify-center p-8 text-sm text-slate-600">Loading your profile…</div>
       )}
 
-      {session && isStudent && profileStatus === 'no-profile' && (
+      {session && isStudent && !isGuest && profileStatus === 'no-profile' && (
         <OnboardingScreen
           onSubmit={createProfile}
           onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
         />
       )}
 
-      {session && isStudent && profileStatus === 'error' && (
+      {session && isStudent && !isGuest && profileStatus === 'error' && (
         <div className="flex min-h-full flex-col items-center justify-center gap-3 p-8 text-center">
           <p className="text-sm font-semibold text-slate-900">Couldn't load your profile</p>
           <p className="max-w-xs text-xs leading-relaxed text-slate-600">
@@ -629,12 +658,19 @@ export default function NjinjiCareerGuidance() {
       )}
 
       {session && !route && tab === "mentors" && isStudent && hasProfile && (
-        <MentorHub learner={learner} aps={learner.grade === 9 ? null : aps}
-          requests={requests}
-          onCreateRequest={async (request) => {
-            await createHelpRequest(request);
-            setProfile((p) => (p.requestSent ? p : { ...p, requestSent: true }));
-          }} />
+        isGuest ? (
+          <GuestGate
+            title="Mentors need an account"
+            body="A help request goes to a real, vetted person who has to be able to reach you back — that is the one thing guest mode cannot do."
+            onCreateAccount={leaveGuest} />
+        ) : (
+          <MentorHub learner={learner} aps={learner.grade === 9 ? null : aps}
+            requests={requests}
+            onCreateRequest={async (request) => {
+              await createHelpRequest(request);
+              setProfile((p) => (p.requestSent ? p : { ...p, requestSent: true }));
+            }} />
+        )
       )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "advisor" && (
