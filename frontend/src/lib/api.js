@@ -82,6 +82,9 @@ export const updateMyProfileData = (profileData) =>
     body: JSON.stringify({ data: profileData ? JSON.stringify(profileData) : null }),
   });
 
+export const deleteMyProfileData = () =>
+  apiFetch('/api/matriculants/me/profile-data', { method: 'DELETE' });
+
 export const searchSaqa = (q) =>
   apiFetch(`/api/qualifications/saqa${q ? `?q=${encodeURIComponent(q)}` : ''}`);
 
