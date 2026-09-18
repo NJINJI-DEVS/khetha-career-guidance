@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using CareerAdvisor.Api.Data;
@@ -47,7 +48,10 @@ public class OccupationEnrichmentService : IOccupationEnrichmentService
     }
 
     private string? ApiKey => _config["Gemini:ApiKey"];
-    private string Model => _config["Gemini:Model"] ?? "gemini-2.0-flash";
+    // Verified against the live API: gemini-2.0-flash now returns 404 "no longer
+    // available". Model availability moves, so this stays configurable and the
+    // default is only a starting point — check it before a large batch.
+    private string Model => _config["Gemini:Model"] ?? "gemini-3.6-flash";
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
 
     // The engines and the UI only understand these values, so the model's output
@@ -226,15 +230,38 @@ public class OccupationEnrichmentService : IOccupationEnrichmentService
         };
 
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent?key={ApiKey}";
-        using var req = new HttpRequestMessage(HttpMethod.Post, url)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"),
-        };
+        var payload = JsonSerializer.Serialize(body);
 
-        using var res = await _http.SendAsync(req, ct);
-        var raw = await res.Content.ReadAsStringAsync(ct);
-        if (!res.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Gemini returned {(int)res.StatusCode}: {Trim(raw, 500)}");
+        /* 503 "high demand" and 429 are common enough on the flash models that a
+           single attempt regularly loses a whole batch. Both are transient and
+           neither is billed, so a short backoff is far cheaper than re-running
+           the batch. Anything else — a bad key, a retired model name — fails
+           immediately, because retrying it would only waste time. */
+        string raw = "";
+        HttpStatusCode status = 0;
+        var delays = new[] { 2, 6, 15 };
+
+        for (var attempt = 0; attempt <= delays.Length; attempt++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(payload, Encoding.UTF8, "application/json"),
+            };
+            using var res = await _http.SendAsync(req, ct);
+            status = res.StatusCode;
+            raw = await res.Content.ReadAsStringAsync(ct);
+
+            if (res.IsSuccessStatusCode) break;
+
+            var transient = status is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests
+                            or HttpStatusCode.InternalServerError or HttpStatusCode.GatewayTimeout;
+            if (!transient || attempt == delays.Length)
+                throw new InvalidOperationException($"Gemini returned {(int)status}: {Trim(raw, 500)}");
+
+            _logger.LogWarning("Gemini {Status}, retrying in {Delay}s (attempt {Attempt})",
+                (int)status, delays[attempt], attempt + 1);
+            await Task.Delay(TimeSpan.FromSeconds(delays[attempt]), ct);
+        }
 
         using var doc = JsonDocument.Parse(raw);
         var text = doc.RootElement
