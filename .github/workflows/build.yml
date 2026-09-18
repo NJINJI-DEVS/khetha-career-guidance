@@ -35,3 +35,15 @@ jobs:
           local-dir: frontend/dist/
           server-dir: kheta.njinjicom.africa/
           
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Create Environment File
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" > frontend/.env
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> frontend/.env
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
