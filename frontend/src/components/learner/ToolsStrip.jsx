@@ -1,7 +1,7 @@
 // Extracted from App.jsx (Stage 6 of the App.jsx split — see
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
-import { BookOpen, Compass, Target, Calculator, Check } from 'lucide-react';
+import { BookOpen, Compass, Target, Calculator, Check, ClipboardCheck } from 'lucide-react';
 import { THEME } from '../../theme/tokens';
 import { SectionTitle } from '../ui/SectionTitle';
 
@@ -12,6 +12,7 @@ export function ToolsStrip({ t, go, profile }) {
     { key: "tool:choice", icon: Compass, color: THEME.blue, label: t("careerChoice"), done: !!profile.careerChoice },
     { key: "tool:fit", icon: Target, color: THEME.gold, label: t("jobFit"), done: !!profile.jobFit },
     { key: "tab:aps", icon: Calculator, color: THEME.red, label: t("apsCalc"), done: !!profile.apsVisited },
+    { key: "tool:evaluate", icon: ClipboardCheck, color: "#1E6F8C", label: "Subject evaluation", done: false },
   ];
   return (
     <div>
