@@ -55,7 +55,7 @@ import { DesktopShell } from './components/layout/DesktopShell';
 
 
 /* ==================================================================
-   Njinji Career Guidance — Khetha NCAP mobile companion
+   Khetha Career Guidance — NCAP mobile companion
    Built against the DHET challenge brief. Section markers below map
    to the mandatory requirements:
      R1 NCAP reference alignment      R5 Personalised career journey
@@ -152,8 +152,9 @@ import { DesktopShell } from './components/layout/DesktopShell';
    Root — responsive across mobile, tablet and desktop
    ================================================================== */
 
-export default function NjinjiCareerGuidance() {
-  const { settings, setSettings, t } = useSettings();
+export default function KhethaCareerGuidance() {
+  const { settings, setSettings, t, hydrate: hydrateSettings, setThemeModeForSync } = useSettings();
+  const { mode: themeMode, setMode: setThemeMode } = useThemeContext();
   const {
     role, setRole, session, setSession, verifying, setVerifying,
   } = useAuth();

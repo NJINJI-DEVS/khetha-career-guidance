@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance).
+// Extracted from App.jsx's root component (KhethaCareerGuidance).
 // Originally an inline closure over `online`/`settings`/`go`/`t`; converted to
 // explicit props — the root now does `onGoOffline={() => go("offline")}`.
 import { WifiOff, Download } from 'lucide-react';

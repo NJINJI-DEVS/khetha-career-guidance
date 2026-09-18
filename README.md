@@ -1,4 +1,4 @@
-# Njinji Career Guidance
+# Khetha Career Guidance
 
 **A mobile-first PWA reimagining of South Africa's National Career Advice Portal (NCAP)**
 Entry for the DHET *"Khetha NCAP: Your Career Guidance Companion, On the Go"* challenge — GovTech Hackathon 2026
@@ -20,7 +20,7 @@ challenge asks entrants to go beyond shrinking that site onto a phone: to reimag
 mobile-first youth actually reach for, with personalisation, offline access, accessibility and engagement
 built in from the start.
 
-**Njinji Career Guidance** carries NCAP's information architecture, tools and trusted-source content onto
+**Khetha Career Guidance** carries NCAP's information architecture, tools and trusted-source content onto
 mobile, adds assessment instruments that genuinely score (not just decorative sliders), and wraps it in a
 mentor network, admin safeguarding layer, and offline-first architecture — all under the official DHET and
 Khetha identity.

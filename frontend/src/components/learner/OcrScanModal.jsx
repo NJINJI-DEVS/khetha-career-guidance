@@ -41,7 +41,7 @@ export function OcrScanModal({ learner, detected: detectedProp, onClose, onApply
         </div>
         {stage !== "done" && (
           <div className="absolute inset-x-0 h-0.5 k-bg-D4AF37"
-            style={{ top: "20%", animation: "njinji-scan 1.4s ease-in-out infinite alternate" }} />
+            style={{ top: "20%", animation: "khetha-scan 1.4s ease-in-out infinite alternate" }} />
         )}
         {stage === "done" && (
           <div className="absolute inset-0 grid place-items-center bg-[rgba(0,90,54,0.85)]">

@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance): the
+// Extracted from App.jsx's root component (KhethaCareerGuidance): the
 // `profile` career-journey record (favourites, careerChoice, jobFit,
 // subjectResult, apsVisited, requestSent). Cross-cutting like settings —
 // Dashboard, MeScreen, CareerDetail (favourites), the questionnaires, and

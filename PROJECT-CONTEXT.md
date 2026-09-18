@@ -1,4 +1,4 @@
-# Njinji Career Guidance — Project Context (Backend + Frontend)
+# Khetha Career Guidance — Project Context (Backend + Frontend)
 
 **Repo:** github.com/NJINJI-DEVS/khetha-career-guidance
 **Challenge:** DHET "Khetha NCAP" — GovTech Hackathon 2026 (SITA)

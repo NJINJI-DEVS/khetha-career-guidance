@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance).
+// Extracted from App.jsx's root component (KhethaCareerGuidance).
 // Pure/props-only already in the original — no closures over root state.
 import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
 

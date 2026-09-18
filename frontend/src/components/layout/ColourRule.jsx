@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance).
+// Extracted from App.jsx's root component (KhethaCareerGuidance).
 // Pure, no props/closures in the original.
 export function ColourRule() {
   return (

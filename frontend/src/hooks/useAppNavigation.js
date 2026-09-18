@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance): owns the
+// Extracted from App.jsx's root component (KhethaCareerGuidance): owns the
 // tab/route/exploreTab/fieldFilter navigation state, the go() string
 // dispatcher, and the role-based nav menu construction (NAV_BY_ROLE/SECONDARY).
 // `onSms` lets go("sms") reach the root's smsOpen modal state without this

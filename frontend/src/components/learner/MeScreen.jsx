@@ -411,7 +411,7 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
           </button>
 
           <p className="text-center text-[11px] leading-relaxed text-slate-600">
-            Njinji Career Guidance is a demonstration built by Njinjicom against the DHET Khetha NCAP challenge.
+            Khetha Career Guidance is a demonstration built by Njinjicom against the DHET Khetha NCAP challenge.
             Course, provider and event data is illustrative — confirm with the institution before applying.
           </p>
         </div>

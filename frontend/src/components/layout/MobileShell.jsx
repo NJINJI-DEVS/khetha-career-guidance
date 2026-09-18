@@ -32,7 +32,7 @@ export function MobileShell({
         <div className="shrink-0 bg-white px-4 pb-3 pt-3">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Njinji Career Guidance</h1>
+              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Khetha Career Guidance</h1>
               <p className="mt-1 text-[11px] leading-tight text-slate-600">
                 Department of Higher Education &amp; Training · NCAP modern gateway
               </p>
