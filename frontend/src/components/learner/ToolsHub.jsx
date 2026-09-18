@@ -1,7 +1,7 @@
 // Extracted from App.jsx (Stage 6 of the App.jsx split — see
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
-import { BookOpen, Compass, Target, Calculator, Check, ChevronRight } from 'lucide-react';
+import { BookOpen, Compass, Target, Calculator, Check, ChevronRight, ClipboardCheck } from 'lucide-react';
 import { KHETHA } from '../../theme/tokens';
 import { SectionTitle } from '../ui/SectionTitle';
 import { Pill } from '../ui/Pill';
@@ -16,10 +16,12 @@ export function ToolsHub({ t, go, profile }) {
       body: "How and where you want to work, matched to real occupations.", done: !!profile.jobFit },
     { key: "aps", icon: Calculator, color: KHETHA.red, title: t("apsCalc"),
       body: "Calculate your NSC score and simulate better marks.", done: false },
+    { key: "evaluate", icon: ClipboardCheck, color: "#1E6F8C", title: "Subject evaluation",
+      body: "FET phase: what each of your subjects opens, what it blocks, and which mark to lift first.", done: false },
   ];
   return (
     <div className="space-y-3 p-4 pb-6">
-      <SectionTitle hint="All four work offline">Career tools</SectionTitle>
+      <SectionTitle hint="All work offline">Career tools</SectionTitle>
       {tools.map((tool) => {
         const Icon = tool.icon;
         return (

@@ -18,6 +18,7 @@ import { DhetArms, KhethaWordmark, SaStripe } from '../ui/BrandMarks';
 import { LanguagePicker } from '../ui/LanguagePicker';
 import { GoogleMark, AppleMark } from '../ui/SocialMarks';
 import { GuardianConsent } from './GuardianConsent';
+import { DEMO_ADMIN } from '../../data/demoAdmin';
 import {
   signInWithPassword, signUpWithPassword, signInWithEmailOtp, verifyEmailOtp,
   signInWithPhoneOtp, verifyPhoneOtp, signInWithOAuth,
@@ -27,7 +28,7 @@ import {
    A1 / A2: consent, secure sign-in, two-step verification
    ================================================================== */
 
-export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, onGuest }) {
+export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, onGuest, onDemoAdmin }) {
   const [step, setStep] = useState("choose");
   const [method, setMethod] = useState(null);
   const [mode, setMode] = useState("signin"); // email method only: "signin" | "signup"
@@ -79,6 +80,14 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
   const submitCredentials = async () => {
     setError("");
     if (method === "email") {
+      /* Demo administrator. Checked before email validation because the demo
+         username is deliberately not an email address, and before any Supabase
+         call because no account exists for it. Grants nothing server-side —
+         see data/demoAdmin.js. */
+      if (email.trim().toLowerCase() === DEMO_ADMIN.email && password === DEMO_ADMIN.password) {
+        onDemoAdmin?.();
+        return;
+      }
       if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address.");
       if (mode === "signup" && password.length < 6) return setError("Your password must be at least 6 characters.");
 

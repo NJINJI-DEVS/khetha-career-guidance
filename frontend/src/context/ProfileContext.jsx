@@ -14,6 +14,10 @@ export const DEFAULT_PROFILE = {
   // Past attempts per instrument, so a retake compares against the previous
   // result instead of silently overwriting it (see engines/history.js).
   history: {},
+  // What the app calls this learner, and their avatar. Both ride in the
+  // profileData jsonb column — no extra table, no migration.
+  displayName: null,
+  avatar: null,
 };
 
 export function ProfileProvider({ children }) {

@@ -25,9 +25,9 @@ import { AuthScreen } from './components/auth/AuthScreen';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { GuestBanner, GuestGate } from './components/auth/GuestGate';
 import { GUEST_LEARNER, GUEST_SESSION } from './data/guestLearner';
+import { DEMO_ADMIN_SESSION, DEMO_APPLICATIONS, DEMO_ANALYTICS } from './data/demoAdmin';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
-import { ViewportSwitcher } from './components/layout/ViewportSwitcher';
 import { CareerDetail } from './components/explore/CareerDetail';
 import { QualDetail } from './components/explore/QualDetail';
 import { Advisor } from './components/advisor/Advisor';
@@ -35,6 +35,7 @@ import { useJourney } from './hooks/useJourney';
 import { OfflineCentre } from './components/learner/OfflineCentre';
 import { Dashboard } from './components/learner/Dashboard';
 import { SubjectChooser } from './components/learner/SubjectChooser';
+import { SubjectEvaluation } from './components/learner/SubjectEvaluation';
 import { Questionnaire } from './components/learner/Questionnaire';
 import { ApsCalculator } from './components/learner/ApsCalculator';
 import { ToolsHub } from './components/learner/ToolsHub';
@@ -213,6 +214,21 @@ export default function NjinjiCareerGuidance() {
   const enterGuest = () => { setRole("student"); setSession(GUEST_SESSION); };
   const leaveGuest = () => setSession(null);
 
+  /* Demo administrator: renders the admin screens from local data so they can
+     be shown without provisioning a real admin. Holds no Supabase session, so
+     every AdminOnly endpoint still refuses it. See data/demoAdmin.js. */
+  const isDemoAdmin = !!session?.demoAdmin;
+  const [demoApplications, setDemoApplications] = useState(DEMO_APPLICATIONS);
+  const enterDemoAdmin = () => {
+    setRole("admin");
+    setSession(DEMO_ADMIN_SESSION);
+    setTab("approvals");
+  };
+  const decideDemoApplication = (id, status) =>
+    setDemoApplications((as) =>
+      as.map((a) => (a.id === id ? { ...a, status, decidedAt: new Date().toISOString() } : a))
+    );
+
   const {
     status: profileStatus, profileError, learner: realLearner,
     subjects: realSubjects, setSubjects: setRealSubjects,
@@ -265,13 +281,19 @@ export default function NjinjiCareerGuidance() {
   const isMentorOrAdmin = !!session && role !== "student";
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
-    useHelpRequests({ enabled: !!session && !isGuest && (isMentorOrAdmin || hasProfile) });
+    useHelpRequests({ enabled: !!session && !isGuest && !isDemoAdmin && (isMentorOrAdmin || hasProfile) });
   const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
-    useMentorApplications({ enabled: !!session && !isGuest && role === "admin", scope: "admin" });
+    useMentorApplications({ enabled: !!session && !isGuest && !isDemoAdmin && role === "admin", scope: "admin" });
   const { applications: myApplications, refetch: refetchMyApplications } =
     useMentorApplications({ enabled: !!session && !isGuest && (role === "mentor" || role === "professional"), scope: "mine" });
   const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } =
-    useNotifications({ enabled: !!session && !isGuest });
+    useNotifications({ enabled: !!session && !isGuest && !isDemoAdmin });
+
+  /* Admin screens read these, so demo mode swaps the source without the
+     screens themselves knowing anything about it. */
+  const adminApplications = isDemoAdmin ? demoApplications : applications;
+  const approveApp = isDemoAdmin ? (id) => decideDemoApplication(id, "approved") : approveApplication;
+  const rejectApp = isDemoAdmin ? (id) => decideDemoApplication(id, "rejected") : rejectApplication;
   const myApplication = myApplications[0] || null;
 
   /* Deadline/event reminders the learner triggers themselves (favouriting a
@@ -494,8 +516,11 @@ export default function NjinjiCareerGuidance() {
   const renderOverlay = () => {
     if (!route) return null;
     if (route === "tool:chooser")
-      return <SubjectChooser onBack={() => setRoute(null)} saved={profile.subjectResult}
+      return <SubjectChooser onBack={() => setRoute(null)} saved={profile.subjectResult} go={go}
         onSave={(r) => setProfile((p) => ({ ...p, subjectResult: r }))} />;
+    if (route === "tool:evaluate")
+      return <SubjectEvaluation subjects={subjects} mathsIsPure={mathsIsPure}
+        onBack={() => setRoute(null)} go={go} />;
     if (route === "tool:choice")
       return <Questionnaire kind="choice" onBack={() => setRoute(null)} saved={profile.careerChoice}
         history={profile.history}
@@ -567,6 +592,7 @@ export default function NjinjiCareerGuidance() {
         <AuthScreen role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
+          onDemoAdmin={enterDemoAdmin}
           onAuthenticated={(s) => resolveAccountRole(role, s)} />
       )}
 
@@ -601,10 +627,12 @@ export default function NjinjiCareerGuidance() {
       {session && (!isStudent || hasProfile) && route && renderOverlay()}
 
       {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
-        <AdminApprovals applications={applications} onApprove={approveApplication} onReject={rejectApplication} />
+        <AdminApprovals applications={adminApplications} onApprove={approveApp} onReject={rejectApp} />
       )}
 
-      {session && (!isStudent || hasProfile) && !route && tab === "analytics" && <AdminAnalytics />}
+      {session && (!isStudent || hasProfile) && !route && tab === "analytics" && (
+        <AdminAnalytics data={isDemoAdmin ? DEMO_ANALYTICS : undefined} />
+      )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
         <MentorWorkspace session={session} requests={requests} onRespond={respondToHelpRequest}
@@ -690,7 +718,9 @@ export default function NjinjiCareerGuidance() {
         <MeScreen t={t} session={session} profile={profile} setProfile={setProfile}
           settings={settings} setSettings={setSettings} notifications={notifications}
           markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
-          aps={aps} go={go} packs={packs} togglePack={togglePack} />
+          aps={aps} go={go} packs={packs} togglePack={togglePack}
+          viewport={viewport} setViewport={setViewport}
+          installable={!!installEvent} onInstall={install} />
       )}
     </>
   );
@@ -750,7 +780,8 @@ export default function NjinjiCareerGuidance() {
     unread,
     onOpenNotifications: () => { setTab("me"); setRoute(null); },
     onOpenProfile: () => { setTab("me"); setRoute(null); },
-    identity: session?.identity,
+    identity: profile.displayName || session?.identity,
+    avatar: profile.avatar,
     online,
     onGoOffline: () => go("offline"),
     t,
@@ -764,6 +795,7 @@ export default function NjinjiCareerGuidance() {
       {...sharedHeaderProps}
       showNextStep={showNextStep} journey={journey} go={go} onDismissNextBar={() => setShowNextBar(false)}
       NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
+      installable={!!installEvent} onInstall={install}
     />
   );
 
@@ -771,7 +803,7 @@ export default function NjinjiCareerGuidance() {
     <DesktopShell
       shellClass={shellClass} session={session} role={role} setRole={setRole} setSession={setSession} setRoute={setRoute}
       NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
-      requests={requests} applications={applications}
+      requests={requests} applications={adminApplications}
       isStudent={isStudent} learner={learner} journey={journey} go={go}
       onSendSms={() => setSmsOpen(true)}
       {...sharedHeaderProps}
@@ -783,7 +815,6 @@ export default function NjinjiCareerGuidance() {
     <div className="min-h-screen w-full bg-slate-200">
       <style>{a11yCss}</style>
       {layout === "desktop" ? desktopShell : mobileShell}
-      <ViewportSwitcher value={viewport} onChange={setViewport} />
     </div>
   );
 }

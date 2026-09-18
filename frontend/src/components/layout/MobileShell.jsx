@@ -8,15 +8,17 @@ import { DeptBar } from './DeptBar';
 import { ColourRule } from './ColourRule';
 import { HeaderActions } from './HeaderActions';
 import { OfflinePill } from './OfflinePill';
+import { InstallPrompt } from './InstallPrompt';
 
 export function MobileShell({
   shellWidth, shellHeight, shellClass, layout,
   session, isStudent, role, setRole, setSession, setRoute,
   textScale, body, modals,
-  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity,
+  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, avatar,
   online, onGoOffline, t,
   showNextStep, journey, go, onDismissNextBar,
   NAV, SECONDARY, tab, setTab, route,
+  installable, onInstall,
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-0 sm:p-6">
@@ -39,7 +41,7 @@ export function MobileShell({
               <div className="flex items-center gap-1.5">
                 <OfflinePill online={online} offline={offline} saveOffline={saveOffline} onGoOffline={onGoOffline} t={t} />
                 <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications}
-                  onOpenProfile={onOpenProfile} identity={identity}
+                  onOpenProfile={onOpenProfile} identity={identity} avatar={avatar}
                   onSignOut={() => { setRole(null); setSession(null); setRoute(null); }} />
               </div>
             )}
@@ -63,6 +65,8 @@ export function MobileShell({
         </main>
 
         {showNextStep && <NextStepBar t={t} journey={journey} go={go} onDismiss={onDismissNextBar} />}
+
+        <InstallPrompt installable={installable} onInstall={onInstall} />
 
         {session && (
           <nav className="shrink-0 border-t border-slate-200 bg-white">

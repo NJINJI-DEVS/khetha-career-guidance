@@ -160,3 +160,34 @@ export const SUBJECT_LABELS = {
   latin: "Latin First Additional Language",
   moderngreek: "Modern Greek First Additional Language",
 };
+
+// GET phase (Grades R–9) subjects, as CAPS actually structures them. These are
+// the marks the Subject Chooser reads. They are deliberately NOT the same list
+// as the FET subjects above: Natural Sciences has not yet split into Physical
+// and Life Sciences, Social Sciences still carries both History and Geography,
+// and EMS covers what later becomes Accounting, Business Studies and Economics.
+export const GET_SUBJECTS = [
+  { key: "english", label: "Home Language", hint: "Usually English or your mother tongue" },
+  { key: "fal", label: "First Additional Language", hint: "Your second language subject" },
+  { key: "maths", label: "Mathematics", hint: "Splits into Mathematics or Mathematical Literacy in Grade 10" },
+  { key: "lifesci", label: "Natural Sciences", hint: "Splits into Physical Sciences and Life Sciences" },
+  { key: "social", label: "Social Sciences", hint: "Splits into History and Geography" },
+  { key: "tech", label: "Technology", hint: "Leads to EGD, Technical Sciences and IT" },
+  { key: "ems", label: "Economic & Management Sciences", hint: "Leads to Accounting, Business Studies and Economics" },
+  { key: "creative", label: "Creative Arts", hint: "Leads to Visual Arts, Design, Drama and Music" },
+  { key: "lo", label: "Life Orientation", hint: "Compulsory, but excluded from your APS later" },
+];
+
+// What each GET subject becomes in the FET phase — the continuity a learner
+// rarely gets told, and the reason a Grade 9 mark predicts anything at all.
+export const GET_TO_FET = {
+  english: ["english"],
+  fal: ["english"],
+  maths: ["maths", "mathslit", "techmaths"],
+  lifesci: ["physci", "lifesci", "agric"],
+  social: ["history", "geography", "tourism"],
+  tech: ["egd", "technical", "it", "cat", "civiltech", "electrical", "mechanical"],
+  ems: ["accounting", "business", "economics"],
+  creative: ["art", "design", "drama", "music", "dance"],
+  lo: ["lo"],
+};

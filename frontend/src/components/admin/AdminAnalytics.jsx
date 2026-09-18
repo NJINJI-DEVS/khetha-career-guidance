@@ -14,8 +14,14 @@ import { Donut } from '../ui/Donut';
 import { Panel } from '../ui/Panel';
 import { Users, UserCheck, UserX, Mail } from 'lucide-react';
 
-export function AdminAnalytics() {
-  const { data, loading, error } = useAdminAnalytics({ enabled: true });
+// `injected` lets demo administrator mode render this from local data. When it
+// is absent the component fetches from the real AdminOnly endpoint exactly as
+// before, so the signed-in path is unchanged.
+export function AdminAnalytics({ data: injected }) {
+  const fetched = useAdminAnalytics({ enabled: !injected });
+  const data = injected || fetched.data;
+  const loading = !injected && fetched.loading;
+  const error = !injected && fetched.error;
 
   if (loading) return <p className="p-4 text-xs text-slate-600">Loading analytics…</p>;
   if (error || !data) return <p className="p-4 text-xs text-slate-600">Couldn't load analytics right now.</p>;
