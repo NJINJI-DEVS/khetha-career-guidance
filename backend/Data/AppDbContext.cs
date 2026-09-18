@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<CvDocument> CvDocuments => Set<CvDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -94,6 +95,16 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<SaqaQualification>().HasIndex(s => s.SaqaId).IsUnique().HasDatabaseName("saqa_qualifications_saqa_id_key");
         modelBuilder.Entity<SaqaQualification>().HasIndex(s => s.NqfLevel).HasDatabaseName("ix_saqa_qualifications_nqf_level");
+
+        // One CV per learner, keyed on the Supabase user id — no surrogate key,
+        // because there is never a second row to disambiguate.
+        modelBuilder.Entity<CvDocument>().HasKey(c => c.UserId);
+        modelBuilder.Entity<CvDocument>().Property(c => c.Payload).HasColumnType("jsonb");
+        // Partial-unique would be tidier, but a plain unique index over a nullable
+        // column already allows many NULLs in Postgres, which is exactly what we
+        // want: unlimited private CVs, one row per live share token.
+        modelBuilder.Entity<CvDocument>().HasIndex(c => c.ShareToken).IsUnique()
+            .HasDatabaseName("cv_documents_share_token_key");
 
         modelBuilder.Entity<DataSyncLog>()
             .HasIndex(d => new { d.SourceName, d.RunAt })

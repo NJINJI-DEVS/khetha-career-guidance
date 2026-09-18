@@ -110,6 +110,24 @@ export const getOccupation = (code) =>
 /** Occupation counts per career field, for directory filter chips. */
 export const getOccupationFields = () => apiFetch('/api/occupations/fields');
 
+// --- CV builder ---
+
+export const getMyCv = () => apiFetch('/api/cv/me');
+
+export const saveMyCv = ({ payload, template, completeness }) =>
+  apiFetch('/api/cv/me', {
+    method: 'PUT',
+    body: JSON.stringify({ payload, template, completeness }),
+  });
+
+export const shareMyCv = () => apiFetch('/api/cv/me/share', { method: 'POST' });
+
+export const unshareMyCv = () => apiFetch('/api/cv/me/share', { method: 'DELETE' });
+
+/** Public read behind a share token — no auth, by design. */
+export const getSharedCv = (token) =>
+  apiFetch(`/api/cv/shared/${encodeURIComponent(token)}`);
+
 // --- Mentor hub ---
 
 export const listMentors = ({ field, province, q } = {}) => {
