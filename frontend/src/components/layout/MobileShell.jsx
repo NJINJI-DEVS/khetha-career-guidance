@@ -8,6 +8,7 @@ import { DeptBar } from './DeptBar';
 import { ColourRule } from './ColourRule';
 import { HeaderActions } from './HeaderActions';
 import { OfflinePill } from './OfflinePill';
+import { InstallPrompt } from './InstallPrompt';
 
 export function MobileShell({
   shellWidth, shellHeight, shellClass, layout,
@@ -17,6 +18,7 @@ export function MobileShell({
   online, onGoOffline, t,
   showNextStep, journey, go, onDismissNextBar,
   NAV, SECONDARY, tab, setTab, route,
+  installable, onInstall,
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-0 sm:p-6">
@@ -63,6 +65,8 @@ export function MobileShell({
         </main>
 
         {showNextStep && <NextStepBar t={t} journey={journey} go={go} onDismiss={onDismissNextBar} />}
+
+        <InstallPrompt installable={installable} onInstall={onInstall} />
 
         {session && (
           <nav className="shrink-0 border-t border-slate-200 bg-white">

@@ -719,7 +719,8 @@ export default function NjinjiCareerGuidance() {
           settings={settings} setSettings={setSettings} notifications={notifications}
           markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
           aps={aps} go={go} packs={packs} togglePack={togglePack}
-          viewport={viewport} setViewport={setViewport} />
+          viewport={viewport} setViewport={setViewport}
+          installable={!!installEvent} onInstall={install} />
       )}
     </>
   );
@@ -794,6 +795,7 @@ export default function NjinjiCareerGuidance() {
       {...sharedHeaderProps}
       showNextStep={showNextStep} journey={journey} go={go} onDismissNextBar={() => setShowNextBar(false)}
       NAV={NAV} SECONDARY={SECONDARY} tab={tab} setTab={setTab} route={route}
+      installable={!!installEvent} onInstall={install}
     />
   );
 

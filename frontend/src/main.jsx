@@ -19,3 +19,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </SettingsProvider>
 );
+
+// Service worker: registered after load so it never competes with first paint
+// on a slow connection. Dev is excluded — a cached shell in dev hides your own
+// edits behind a stale build, which costs more time than it saves.
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("Service worker registration failed", err);
+    });
+  });
+}

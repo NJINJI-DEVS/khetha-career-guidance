@@ -5,7 +5,7 @@ import { useState } from 'react';
 import {
   ShieldCheck, Plug, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
   BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
-  Settings, Pencil, Route, Monitor,
+  Settings, Pencil, Route, Monitor, Download,
 } from 'lucide-react';
 import { Avatar, ProfileEditor } from './ProfileEditor';
 import { occById } from '../../data/occupations';
@@ -22,7 +22,7 @@ import { SectionTitle } from '../ui/SectionTitle';
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall }) {
   const [tab, setTab] = useState("journey");
   const [editorOpen, setEditorOpen] = useState(false);
   const shownName = profile.displayName || session.identity;
@@ -241,6 +241,21 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
                 })}
               </div>
             </div>
+          )}
+
+          {installable && (
+            <button onClick={onInstall}
+              className="flex w-full items-center gap-3 rounded-2xl border border-dashed k-bd-00784A k-bg-E7F4EE p-4 text-left">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl k-bg-005A36 text-white">
+                <Download className="h-5 w-5" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold k-tx-005A36">Install Khetha on this device</span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-600">
+                  Adds it to your home screen and lets it open full screen, offline.
+                </span>
+              </span>
+            </button>
           )}
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
