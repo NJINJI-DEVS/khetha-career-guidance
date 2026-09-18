@@ -19,6 +19,12 @@ public class Matriculant
                                      // "current year vs matric year" calculation.
     public string? School { get; set; }
     public string Province { get; set; } = string.Empty;
+
+    // Captured once, at signup (see GuardianConsent.jsx's POPIA age-gate),
+    // not re-collected here — the real basis for minor/adult determination,
+    // replacing what used to be an unrecorded, self-declared "I'm over 18"
+    // click that nothing verified or persisted.
+    public DateOnly? DateOfBirth { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // The learner's in-app journey state (favourited qualifications, saved

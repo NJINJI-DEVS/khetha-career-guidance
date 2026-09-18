@@ -1,45 +1,72 @@
 // Checklist Part B — guardian consent for learners under 18.
 //
 // POPIA treats a child's personal information as special. A minor cannot give
-// valid consent for its processing, so where the learner states they are under
-// 18 a guardian must be named before anything is stored.
-import { useState } from 'react';
+// valid consent for its processing, so where the learner is under 18 a
+// guardian must be named before anything is stored.
+//
+// Age used to be self-declared via an "Under 18 / 18 or older" button pair —
+// nothing stopped a minor from just clicking "18 or older" to skip this, and
+// the answer was never actually recorded anywhere. Collecting the real date
+// of birth instead gives an honest, unspoofable-by-a-typo age determination,
+// and — since it's threaded through to the real Matriculant record (see
+// App.jsx/OnboardingScreen.jsx) — a real, persisted fact about the account
+// rather than a one-off signup-time decision.
+import { useState, useMemo } from 'react';
 import { ShieldCheck, Users, Check } from 'lucide-react';
+import { calculateAge } from '../../engines/age';
 
 const RELATIONS = ["Parent", "Grandparent", "Legal guardian", "Older sibling (18+)", "Teacher acting in loco parentis"];
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+const oldestIso = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 100);
+  return d.toISOString().slice(0, 10);
+};
+
 export function GuardianConsent({ onDone, onDefer }) {
-  const [age, setAge] = useState(null);          /* "minor" | "adult" | null */
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dobConfirmed, setDobConfirmed] = useState(false); /* Continue clicked with a valid DOB */
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("Parent");
   const [contact, setContact] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+
+  const age = useMemo(() => (dateOfBirth ? calculateAge(dateOfBirth) : null), [dateOfBirth]);
+  const dobValid = age !== null && age >= 0 && age <= 100;
+  const isMinor = dobValid && age < 18;
 
   const contactOk = /^[\d\s+]{9,14}$/.test(contact.trim());
   const ready = name.trim().length > 2 && contactOk && confirmed;
 
   const input = "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 k-fb-00784A focus:outline-none focus-visible:ring-2 k-fvr-D4AF37";
 
-  if (age === null) {
+  if (!dobConfirmed) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-          <ShieldCheck className="h-4 w-4" />How old are you?
+          <ShieldCheck className="h-4 w-4" />What's your date of birth?
         </p>
         <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-          Learners under 18 need a parent or guardian to agree before we store anything. It takes one screen.
+          Learners under 18 need a parent or guardian to agree before we store anything. It takes one more screen.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button onClick={() => setAge("minor")}
-            className="rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-slate-900">Under 18</button>
-          <button onClick={() => { setAge("adult"); onDone({ minor: false }); }}
-            className="rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-slate-900">18 or older</button>
+        <div className="mt-3">
+          <label htmlFor="g-dob" className="text-xs font-medium text-slate-700">Date of birth</label>
+          <input id="g-dob" type="date" value={dateOfBirth} min={oldestIso()} max={todayIso()}
+            onChange={(e) => setDateOfBirth(e.target.value)} className={input} />
         </div>
+        {dateOfBirth && !dobValid && (
+          <p className="mt-1.5 text-[11px] k-tx-9B1C14">That doesn't look right — check the date.</p>
+        )}
+        <button
+          onClick={() => (isMinor ? setDobConfirmed(true) : onDone({ minor: false, dateOfBirth }))}
+          disabled={!dobValid}
+          className="mt-3 w-full rounded-xl k-bg-005A36 py-2.5 text-xs font-semibold text-white k-dis">
+          Continue
+        </button>
       </div>
     );
   }
-
-  if (age === "adult") return null;
 
   return (
     <div className="rounded-2xl border k-bd-E4CE8A k-bg-FBF5E7 p-4">
@@ -83,7 +110,7 @@ export function GuardianConsent({ onDone, onDefer }) {
         </button>
       </div>
 
-      <button onClick={() => onDone({ minor: true, guardian: { name, relation, contact } })} disabled={!ready}
+      <button onClick={() => onDone({ minor: true, dateOfBirth, guardian: { name, relation, contact } })} disabled={!ready}
         className="mt-4 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
         Continue with guardian consent
       </button>

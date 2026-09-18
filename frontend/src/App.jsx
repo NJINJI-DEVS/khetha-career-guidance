@@ -603,6 +603,7 @@ export default function NjinjiCareerGuidance() {
       {session && isStudent && !isGuest && profileStatus === 'no-profile' && (
         <OnboardingScreen
           onSubmit={createProfile}
+          dateOfBirth={session?.ageGate?.dateOfBirth || null}
           onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
         />
       )}
