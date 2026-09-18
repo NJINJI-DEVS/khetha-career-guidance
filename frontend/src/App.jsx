@@ -5,6 +5,7 @@ import { providerById } from './data/providers';
 import { ROLES } from './data/roles';
 import { toLevel } from './engines/levels';
 import { chooseSubjects, eligibility } from './engines/subjects';
+import { pushHistory } from './engines/history';
 import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
@@ -473,10 +474,20 @@ export default function NjinjiCareerGuidance() {
         onSave={(r) => setProfile((p) => ({ ...p, subjectResult: r }))} />;
     if (route === "tool:choice")
       return <Questionnaire kind="choice" onBack={() => setRoute(null)} saved={profile.careerChoice}
-        onSave={(r) => setProfile((p) => ({ ...p, careerChoice: r }))} />;
+        history={profile.history}
+        onSave={(r) => setProfile((p) => ({
+          ...p, careerChoice: r,
+          history: p.careerChoice ? pushHistory(p.history, "choice", { summary: p.careerChoice.code.join("") }) : p.history,
+        }))} />;
     if (route === "tool:fit")
       return <Questionnaire kind="fit" onBack={() => setRoute(null)} saved={profile.jobFit}
-        onSave={(r) => setProfile((p) => ({ ...p, jobFit: r }))} />;
+        history={profile.history}
+        onSave={(r) => setProfile((p) => ({
+          ...p, jobFit: r,
+          history: p.jobFit
+            ? pushHistory(p.history, "fit", { summary: `${p.jobFit.matches[0].title} ${p.jobFit.matches[0].fit}%` })
+            : p.history,
+        }))} />;
     if (route.startsWith("career:"))
       return <CareerDetail id={route.slice(7)} onBack={() => setRoute(null)} fav={profile.favourites}
         toggleFav={toggleFav} go={go} />;

@@ -17,6 +17,7 @@ import { Pill } from '../ui/Pill';
 import { DhetArms, KhethaWordmark, SaStripe } from '../ui/BrandMarks';
 import { LanguagePicker } from '../ui/LanguagePicker';
 import { GoogleMark, AppleMark } from '../ui/SocialMarks';
+import { GuardianConsent } from './GuardianConsent';
 import {
   signInWithPassword, signUpWithPassword, signInWithEmailOtp, verifyEmailOtp,
   signInWithPhoneOtp, verifyPhoneOtp, signInWithOAuth,
@@ -37,6 +38,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
   const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(""));
   const [trustDevice, setTrustDevice] = useState(true);
   const [consent, setConsent] = useState({ core: true, ncap: true, notify: true, research: false });
+  const [ageGate, setAgeGate] = useState(null);   /* {minor, guardian?} — POPIA gate, see GuardianConsent */
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
@@ -394,7 +396,11 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
           the rest whenever you like.
         </p>
 
-        <div className="mt-5 space-y-2.5">
+        <div className="mt-5">
+          <GuardianConsent onDone={setAgeGate} onDefer={() => setStep("choose")} />
+        </div>
+
+        <div className="mt-3 space-y-2.5">
           {CONSENT_ITEMS.map((c) => {
             const on = consent[c.key];
             return (
@@ -426,10 +432,16 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
         </p>
 
         <button
-          onClick={() => onAuthenticated({ ...pendingAuth, trustDevice, consent, signedInAt: new Date() })}
-          className="mt-5 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white">
+          onClick={() => onAuthenticated({ ...pendingAuth, trustDevice, consent, ageGate, signedInAt: new Date() })}
+          disabled={!ageGate}
+          className="mt-5 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
           Agree and continue
         </button>
+        {!ageGate && (
+          <p className="mt-2 text-center text-[11px] text-slate-600">
+            Answer how old you are first — under-18s need a guardian named before anything is stored.
+          </p>
+        )}
       </div>
     );
   }

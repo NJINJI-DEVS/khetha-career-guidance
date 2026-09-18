@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import {
   ShieldCheck, Plug, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
-  BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight,
+  BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
 } from 'lucide-react';
 import { occById } from '../../data/occupations';
 import { qualById } from '../../data/qualifications';
@@ -43,6 +43,7 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Pill tone="green" icon={ShieldCheck}>2-step on</Pill>
             {session.consent?.ncap && <Pill tone="blue" icon={Plug}>NCAP synced</Pill>}
+            {session.ageGate?.minor && <Pill tone="gold" icon={Users}>Guardian consent on file</Pill>}
           </div>
         </div>
       </div>
@@ -204,8 +205,8 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
             <div className="mt-3 space-y-3">
               <div>
                 <p className="flex items-center gap-2 text-xs font-medium text-slate-700"><Type className="h-3.5 w-3.5" />{t("textSize")}</p>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {[{ v: 1, l: t("standard") }, { v: 1.15, l: t("large") }, { v: 1.3, l: t("largest") }].map((o) => (
+                <div className="mt-2 grid grid-cols-4 gap-2">
+                  {[{ v: 1, l: t("standard") }, { v: 1.25, l: t("large") }, { v: 1.5, l: t("largest") }, { v: 2, l: "200%" }].map((o) => (
                     <button key={o.v} onClick={() => setSettings((s) => ({ ...s, textScale: o.v }))}
                       className={`rounded-lg px-2 py-2 text-[11px] font-medium transition-colors ${
                         settings.textScale === o.v ? "k-bg-005A36 text-white" : "bg-slate-100 text-slate-700"
@@ -217,6 +218,7 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
                 { key: "highContrast", icon: Contrast, label: t("highContrast"), note: "Black on white, heavier borders, no tinted backgrounds." },
                 { key: "reduceMotion", icon: RefreshCw, label: t("reduceMotion"), note: "Turns off spinners and transitions." },
                 { key: "simpleLanguage", icon: Info, label: t("plainLanguage"), note: "Shorter sentences and fewer technical terms." },
+                { key: "readAloud", icon: Volume2, label: "Read aloud", note: "Adds a speaker button to questions and results, in your chosen language." },
               ].map((o) => {
                 const Icon = o.icon;
                 return (
