@@ -20,10 +20,13 @@ export function useMatriculantProfile({ enabled }) {
   const [matriculant, setMatriculant] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [mathsIsPure, setMathsIsPure] = useState(true);
+  const [retryTick, setRetryTick] = useState(0);
+  const refetch = () => setRetryTick((t) => t + 1);
 
   useEffect(() => {
     if (!enabled) { setStatus('loading'); return; }
     let cancelled = false;
+    setStatus('loading');
 
     (async () => {
       try {
@@ -42,7 +45,7 @@ export function useMatriculantProfile({ enabled }) {
     })();
 
     return () => { cancelled = true; };
-  }, [enabled]);
+  }, [enabled, retryTick]);
 
   // Debounced persistence: the APS calculator's sliders update `subjects` on every
   // drag tick — saving on every tick would be excessive, so this waits for a pause.
@@ -71,7 +74,7 @@ export function useMatriculantProfile({ enabled }) {
 
   return {
     status,
-    error,
+    profileError: error,
     hasProfile: status === 'ready',
     learner: matriculantToLearner(matriculant),
     subjects,
@@ -79,5 +82,6 @@ export function useMatriculantProfile({ enabled }) {
     mathsIsPure,
     setMathsIsPure,
     createProfile,
+    refetch,
   };
 }

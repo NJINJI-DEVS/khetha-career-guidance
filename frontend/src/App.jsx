@@ -153,7 +153,8 @@ export default function NjinjiCareerGuidance() {
 
   const { profile, setProfile } = useProfile();
   const {
-    status: profileStatus, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
+    status: profileStatus, profileError, learner, subjects, setSubjects, mathsIsPure, setMathsIsPure, createProfile,
+    refetch: refetchProfile,
   } = useMatriculantProfile({ enabled: !!session && role === "student" });
   const hasProfile = profileStatus === 'ready';
   const isMentorOrAdmin = !!session && role !== "student";
@@ -424,6 +425,23 @@ export default function NjinjiCareerGuidance() {
           onSubmit={createProfile}
           onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
         />
+      )}
+
+      {session && isStudent && profileStatus === 'error' && (
+        <div className="flex min-h-full flex-col items-center justify-center gap-3 p-8 text-center">
+          <p className="text-sm font-semibold text-slate-900">Couldn't load your profile</p>
+          <p className="max-w-xs text-xs leading-relaxed text-slate-600">
+            {profileError?.message || "Something went wrong talking to the server."}
+          </p>
+          <button onClick={refetchProfile}
+            className="mt-2 rounded-xl k-bg-005A36 px-4 py-2 text-sm font-semibold text-white">
+            Try again
+          </button>
+          <button onClick={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
+            className="text-xs font-semibold text-slate-600 underline">
+            Sign out
+          </button>
+        </div>
       )}
 
       {session && (!isStudent || hasProfile) && route && renderOverlay()}
