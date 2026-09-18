@@ -12,17 +12,25 @@ import { SectionTitle } from '../ui/SectionTitle';
 import { Progress } from '../ui/Progress';
 import { Likert } from '../ui/Likert';
 import { Pill } from '../ui/Pill';
+import { SpeakButton } from '../ui/SpeakButton';
+import { ResultHistory } from './ResultHistory';
+import { useSettings } from '../../context/SettingsContext';
 
 /* ==================================================================
    R3: Career Choice and Job Fit questionnaires
    ================================================================== */
 
-export function Questionnaire({ kind, onBack, onSave, saved }) {
+export function Questionnaire({ kind, onBack, onSave, saved, history }) {
+  const { settings } = useSettings();
+  const { lang, readAloud } = settings;
+
+  /* Checklist A3 names one question per screen, so perPage is 1 for both
+     instruments — answering then auto-advances (see the Likert onChange). */
   const config = kind === "choice"
     ? { title: "Career Choice", questions: CAREER_CHOICE_Q, score: scoreCareerChoice,
-        intro: "Twelve statements about what you enjoy. There are no right answers — answer for yourself, not for the job you think you should want.", perPage: 4 }
+        intro: "Twelve statements about what you enjoy. There are no right answers — answer for yourself, not for the job you think you should want.", perPage: 1 }
     : { title: "Job Fit", questions: JOB_FIT_Q, score: scoreJobFit,
-        intro: "Ten statements about how and where you want to work. This matches you to the day-to-day reality of an occupation, not just the title.", perPage: 5 };
+        intro: "Ten statements about how and where you want to work. This matches you to the day-to-day reality of an occupation, not just the title.", perPage: 1 };
 
   const [answers, setAnswers] = useState(saved?.answers || {});
   const [page, setPage] = useState(saved ? -1 : 0);
@@ -51,7 +59,13 @@ export function Questionnaire({ kind, onBack, onSave, saved }) {
         {kind === "choice" ? (
           <>
             <div className="rounded-2xl bg-slate-900 p-4 text-white">
-              <p className="text-xs text-slate-300">Your interest code</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-xs text-slate-300">Your interest code</p>
+                {readAloud && (
+                  <SpeakButton lang={lang}
+                    text={`Your interest code is ${result.code.join(", ")}. ${result.code.map((c) => RIASEC_TYPES[c].label).join(", ")}. Careers that match include ${result.matches.slice(0, 3).map((m) => m.title).join(", ")}.`} />
+                )}
+              </div>
               <p className="mt-1 text-3xl font-bold tracking-widest k-tx-D4AF37">{result.code.join("")}</p>
               <p className="mt-2 text-[11px] leading-relaxed text-slate-300">
                 {result.code.map((c) => RIASEC_TYPES[c].label).join(" · ")}
@@ -87,6 +101,9 @@ export function Questionnaire({ kind, onBack, onSave, saved }) {
           </div>
         )}
 
+        <ResultHistory history={history} kind={kind}
+          current={kind === "choice" ? result.code.join("") : `${result.matches[0].title} ${result.matches[0].fit}%`} />
+
         <SectionTitle hint="Tap to open">Careers that match</SectionTitle>
         <div className="space-y-2.5">
           {result.matches.slice(0, 6).map((o) => (
@@ -110,7 +127,11 @@ export function Questionnaire({ kind, onBack, onSave, saved }) {
       <p className="-mt-2 mb-3 text-sm leading-relaxed text-slate-600">{config.intro}</p>
       <div className="mb-4">
         <div className="mb-1.5 flex justify-between text-[11px] text-slate-600">
-          <span>Question {page * config.perPage + 1}–{Math.min((page + 1) * config.perPage, config.questions.length)} of {config.questions.length}</span>
+          <span>
+            {config.perPage === 1
+              ? `Question ${page + 1} of ${config.questions.length}`
+              : `Question ${page * config.perPage + 1}–${Math.min((page + 1) * config.perPage, config.questions.length)} of ${config.questions.length}`}
+          </span>
           <span>{answered} answered</span>
         </div>
         <Progress value={answered} max={config.questions.length} color={KHETHA.blue} />
@@ -118,9 +139,22 @@ export function Questionnaire({ kind, onBack, onSave, saved }) {
 
       <div className="space-y-3">
         {slice.map((q) => (
-          <div key={q.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-sm leading-relaxed text-slate-900">{q.text}</p>
-            <Likert name={q.text} value={answers[q.id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))} />
+          <div key={q.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="flex items-start gap-3">
+              <p className="flex-1 text-base leading-relaxed text-slate-900">{q.text}</p>
+              {readAloud && <SpeakButton text={q.text} lang={lang} />}
+            </div>
+            <Likert name={q.text} value={answers[q.id]}
+              onChange={(v) => {
+                setAnswers((a) => ({ ...a, [q.id]: v }));
+                /* One question per screen: answering is the action, so move on
+                   rather than making the learner find a button. */
+                if (config.perPage === 1) {
+                  setTimeout(() => {
+                    if (page + 1 < pages) setPage(page + 1);
+                  }, 220);
+                }
+              }} />
           </div>
         ))}
       </div>
@@ -129,10 +163,12 @@ export function Questionnaire({ kind, onBack, onSave, saved }) {
         onClick={() => (page + 1 < pages ? setPage(page + 1) : finish())}
         disabled={!pageDone}
         className="mt-4 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white transition-colors k-dis">
-        {page + 1 < pages ? "Next questions" : "See my results"}
+        {page + 1 < pages ? "Next" : "See my results"}
       </button>
       {!pageDone && (
-        <p className="mt-2 text-center text-[11px] text-slate-600">Answer every statement on this page to continue.</p>
+        <p className="mt-2 text-center text-[11px] text-slate-600">
+          {config.perPage === 1 ? "Pick an answer to continue." : "Answer every statement on this page to continue."}
+        </p>
       )}
     </Screen>
   );

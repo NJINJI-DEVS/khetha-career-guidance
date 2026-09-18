@@ -11,6 +11,9 @@ const ProfileContext = createContext(null);
 
 export const DEFAULT_PROFILE = {
   favourites: [], careerChoice: null, jobFit: null, subjectResult: null,
+  // Past attempts per instrument, so a retake compares against the previous
+  // result instead of silently overwriting it (see engines/history.js).
+  history: {},
 };
 
 export function ProfileProvider({ children }) {

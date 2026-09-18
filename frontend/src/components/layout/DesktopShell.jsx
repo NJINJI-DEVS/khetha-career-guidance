@@ -17,7 +17,7 @@ export function DesktopShell({
   requests, applications,
   isStudent, learner, journey, t, go,
   onSendSms,
-  offline, saveOffline, unread, onOpenNotifications, online, onGoOffline,
+  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, online, onGoOffline,
   textScale, body, modals,
 }) {
   return (
@@ -134,6 +134,7 @@ export function DesktopShell({
             <div className="flex items-center gap-1.5">
               <OfflinePill online={online} offline={offline} saveOffline={saveOffline} onGoOffline={onGoOffline} t={t} />
               <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications}
+                onOpenProfile={onOpenProfile} identity={identity}
                 onSignOut={() => { setRole(null); setSession(null); setRoute(null); }} />
             </div>
           )}
