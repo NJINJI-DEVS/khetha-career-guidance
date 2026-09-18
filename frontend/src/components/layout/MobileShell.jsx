@@ -2,6 +2,7 @@
 // `mobileShell` JSX tree. Receives everything it needs as props; the root
 // still owns all the underlying state and just threads it down.
 import React from 'react';
+import { Bot } from 'lucide-react';
 import { ROLES } from '../../data/roles';
 import { NextStepBar } from '../learner/NextStepBar';
 import { DeptBar } from './DeptBar';
@@ -68,8 +69,8 @@ export function MobileShell({
           {session && !(tab === "advisor" && !route) && (
             <button onClick={() => { setTab("advisor"); setRoute(null); }}
               aria-label="Chat with the Khetha advisor"
-              className="absolute bottom-3 left-3 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 text-base font-bold k-tx-0F172A shadow-lg ring-2 ring-white">
-              K
+              className="absolute bottom-3 right-3 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 k-tx-0F172A shadow-lg ring-2 ring-white">
+              <Bot className="h-6 w-6" strokeWidth={2.25} />
             </button>
           )}
         </div>

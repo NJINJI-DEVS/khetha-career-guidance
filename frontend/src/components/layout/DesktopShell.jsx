@@ -2,7 +2,7 @@
 // `desktopShell` JSX tree. Receives everything it needs as props; the root
 // still owns all the underlying state and just threads it down.
 import React from 'react';
-import { MessageSquare, User } from 'lucide-react';
+import { Bot, MessageSquare, User } from 'lucide-react';
 import { THEME } from '../../theme/tokens';
 import { ROLES } from '../../data/roles';
 import { Progress } from '../ui/Progress';
@@ -148,8 +148,8 @@ export function DesktopShell({
         {session && !(tab === "advisor" && !route) && (
           <button onClick={() => { setTab("advisor"); setRoute(null); }}
             aria-label="Chat with the Khetha advisor"
-            className="absolute bottom-5 left-5 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 text-base font-bold k-tx-0F172A shadow-lg ring-2 ring-white">
-            K
+            className="absolute bottom-5 right-5 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 k-tx-0F172A shadow-lg ring-2 ring-white">
+            <Bot className="h-6 w-6" strokeWidth={2.25} />
           </button>
         )}
 
