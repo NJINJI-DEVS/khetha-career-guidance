@@ -1,15 +1,26 @@
-// Extracted from App.jsx (Stage 5 of the App.jsx split — see
-// plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
-// Note: internal state simulates a mock OTP/OAuth flow — do not wire anything real here.
+// Wired to real Supabase Auth. Preserves the original step machine
+// (choose -> credentials -> [verify for OTP methods] -> consent) and the
+// onAuthenticated(sessionLikeObject) contract, so nothing downstream of
+// this component needed to change.
+//
+// Email + password and email OTP need zero extra Supabase configuration —
+// both are built into Supabase's core email auth. Google/Apple OAuth and
+// phone/SMS OTP call the real Supabase APIs too, but will surface a real
+// "provider not enabled" error until those providers are turned on in the
+// Supabase dashboard (Authentication -> Providers) — nothing here is faked.
 
 import { useState, useRef, useEffect } from 'react';
-import { Mail, Phone, ChevronRight, Loader2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, AlertTriangle, Smartphone, KeyRound, Check } from 'lucide-react';
+import { Mail, Phone, ChevronRight, Loader2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, AlertTriangle, Smartphone, KeyRound, Check, MailCheck } from 'lucide-react';
 import { ROLES } from '../../data/roles';
-import { OTP_LENGTH, DEMO_CODE, CONSENT_ITEMS } from '../../data/auth';
+import { OTP_LENGTH, CONSENT_ITEMS } from '../../data/auth';
 import { Pill } from '../ui/Pill';
 import { DhetArms, KhethaWordmark, SaStripe } from '../ui/BrandMarks';
 import { LanguagePicker } from '../ui/LanguagePicker';
 import { GoogleMark, AppleMark } from '../ui/SocialMarks';
+import {
+  signInWithPassword, signUpWithPassword, signInWithEmailOtp, verifyEmailOtp,
+  signInWithPhoneOtp, verifyPhoneOtp, signInWithOAuth,
+} from '../../services/authService';
 
 /* ==================================================================
    A1 / A2: consent, secure sign-in, two-step verification
@@ -18,6 +29,7 @@ import { GoogleMark, AppleMark } from '../ui/SocialMarks';
 export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) {
   const [step, setStep] = useState("choose");
   const [method, setMethod] = useState(null);
+  const [mode, setMode] = useState("signin"); // email method only: "signin" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,46 +40,86 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
+  const [pendingAuth, setPendingAuth] = useState(null); // holds {method, identity} once Supabase auth succeeds, before consent
   const boxes = useRef([]);
 
   useEffect(() => {
     if (resendIn <= 0) return undefined;
-    const t = setTimeout(() => setResendIn((n) => n - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setResendIn((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
   }, [resendIn]);
   useEffect(() => {
     if (step === "verify") boxes.current[0]?.focus();
   }, [step]);
 
-  const identity =
-    method === "phone" ? `+27 ${phone}`
-    : method === "email" ? email
-    : method === "google" ? "learner@gmail.com"
-    : "Apple ID";
-  const channel =
-    method === "phone" ? `SMS to +27 ${phone || "•• ••• ••••"}`
-    : method === "email" ? `email to ${email || "your inbox"}`
-    : "your authenticator app";
+  const identity = method === "phone" ? `+27 ${phone}` : email;
+  const channel = method === "phone" ? `SMS to +27 ${phone || "•• ••• ••••"}` : `email to ${email || "your inbox"}`;
 
-  const startVerification = (via) => {
-    setError(""); setBusy(true);
-    setTimeout(() => {
-      setBusy(false); setMethod(via);
-      setDigits(Array(OTP_LENGTH).fill("")); setResendIn(30); setStep("verify");
-    }, 700);
+  const friendlyError = (err) => {
+    const msg = err?.message || "Something went wrong. Please try again.";
+    if (/provider is not enabled/i.test(msg)) {
+      return `${method === "google" ? "Google" : method === "apple" ? "Apple" : "This"} sign-in isn't set up for this project yet — email is available in the meantime.`;
+    }
+    return msg;
   };
 
-  const submitCredentials = () => {
+  /* ---- Google / Apple: real OAuth call, redirects the browser away ---- */
+  const startOAuth = async (provider) => {
+    setError(""); setBusy(true);
+    const { error: err } = await signInWithOAuth(provider);
+    setBusy(false);
+    // On success the browser navigates away immediately — this line only
+    // runs if the call failed before a redirect could happen.
+    if (err) { setMethod(provider); setError(friendlyError(err)); }
+  };
+
+  /* ---- email / phone credentials submit ---- */
+  const submitCredentials = async () => {
+    setError("");
     if (method === "email") {
       if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address.");
-      if (password.length < 6) return setError("Your password must be at least 6 characters.");
+      if (mode === "signup" && password.length < 6) return setError("Your password must be at least 6 characters.");
+
+      setBusy(true);
+      const { data, error: err } = mode === "signup"
+        ? await signUpWithPassword(email, password)
+        : await signInWithPassword(email, password);
+      setBusy(false);
+
+      if (err) return setError(err.message);
+      if (mode === "signup" && data.user && !data.session) {
+        // Email confirmation is required before a session is issued.
+        setStep("confirmEmail");
+        return;
+      }
+      setPendingAuth({ method: "email", identity: email });
+      setStep("consent");
+      return;
     }
+
     if (method === "phone") {
       const d = phone.replace(/\D/g, "");
       if (d.length !== 9) return setError("Enter 9 digits after +27, like 71 234 5678.");
       if (!/^[6-8]/.test(d)) return setError("South African mobile numbers start with 6, 7 or 8.");
+
+      setBusy(true);
+      const { error: err } = await signInWithPhoneOtp(`+27${d}`);
+      setBusy(false);
+      if (err) return setError(friendlyError(err));
+      setDigits(Array(OTP_LENGTH).fill("")); setResendIn(30); setStep("verify");
+      return;
     }
-    startVerification(method);
+  };
+
+  /* ---- email OTP: sent from the "choose" screen's "continue with email code" path ---- */
+  const startEmailOtp = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address first.");
+    setError(""); setBusy(true);
+    const { error: err } = await signInWithEmailOtp(email);
+    setBusy(false);
+    if (err) return setError(friendlyError(err));
+    setMethod("emailOtp");
+    setDigits(Array(OTP_LENGTH).fill("")); setResendIn(30); setStep("verify");
   };
 
   const setDigit = (i, raw) => {
@@ -90,23 +142,29 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
     boxes.current[Math.min(text.length, OTP_LENGTH - 1)]?.focus();
   };
 
-  const verify = () => {
+  const verify = async () => {
     const code = digits.join("");
     if (code.length < OTP_LENGTH) return setError("Enter all six digits.");
     setBusy(true);
-    setTimeout(() => {
-      setBusy(false);
-      if (code === DEMO_CODE) setStep("consent");
-      else {
-        setError("That code doesn't match. Check your messages and try again.");
-        setDigits(Array(OTP_LENGTH).fill("")); boxes.current[0]?.focus();
-      }
-    }, 600);
+    const d = phone.replace(/\D/g, "");
+    const { error: err } = method === "phone"
+      ? await verifyPhoneOtp(`+27${d}`, code)
+      : await verifyEmailOtp(email, code);
+    setBusy(false);
+
+    if (err) {
+      setError("That code doesn't match. Check your messages and try again.");
+      setDigits(Array(OTP_LENGTH).fill("")); boxes.current[0]?.focus();
+      return;
+    }
+    setPendingAuth({ method, identity });
+    setStep("consent");
   };
 
   const back = () => {
     setError("");
-    if (step === "verify") setStep(method === "google" || method === "apple" ? "choose" : "credentials");
+    if (step === "verify") setStep(method === "phone" ? "credentials" : "choose");
+    else if (step === "confirmEmail") setStep("credentials");
     else setStep("choose");
   };
 
@@ -148,15 +206,21 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
         </div>
 
         <div className="mt-6 space-y-2.5">
-          <button onClick={() => startVerification("google")} disabled={busy}
+          <button onClick={() => startOAuth("google")} disabled={busy}
             className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-800 k-dis-soft">
             <GoogleMark />{t("continueGoogle")}
           </button>
-          <button onClick={() => startVerification("apple")} disabled={busy}
+          <button onClick={() => startOAuth("apple")} disabled={busy}
             className="flex w-full items-center justify-center gap-3 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white k-dis-soft">
             <AppleMark />{t("continueApple")}
           </button>
         </div>
+
+        {error && (method === "google" || method === "apple") && (
+          <p className="mt-3 flex items-start gap-1.5 text-xs k-tx-9B1C14">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{error}
+          </p>
+        )}
 
         <div className="my-5 flex items-center gap-3">
           <span className="h-px flex-1 bg-slate-200" />
@@ -165,7 +229,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
         </div>
 
         <div className="space-y-2.5">
-          <button onClick={() => { setMethod("email"); setError(""); setStep("credentials"); }}
+          <button onClick={() => { setMethod("email"); setMode("signin"); setError(""); setStep("credentials"); }}
             className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left">
             <Mail className="h-5 w-5 k-tx-00784A" />
             <span className="flex-1 text-sm font-semibold text-slate-800">{t("continueEmail")}</span>
@@ -213,13 +277,24 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
           <ArrowLeft className="h-4 w-4" />Back
         </button>
         <h2 className="mt-5 text-xl font-bold tracking-tight text-slate-900">
-          {method === "email" ? "Sign in with email" : "Sign in with your phone"}
+          {method === "email" ? (mode === "signup" ? "Create your account" : "Sign in with email") : "Sign in with your phone"}
         </h2>
         <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
           {method === "email"
-            ? "Use the address you registered with. New here? The same form creates your account."
+            ? "Use the address you registered with, or create a new account below."
             : "Enter a South African mobile number. We'll SMS you a six-digit code."}
         </p>
+
+        {method === "email" && (
+          <div className="mt-4 flex rounded-xl bg-slate-100 p-1">
+            {[["signin", "Sign in"], ["signup", "Create account"]].map(([key, label]) => (
+              <button key={key} onClick={() => { setMode(key); setError(""); }}
+                className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-colors ${
+                  mode === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+                }`}>{label}</button>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 space-y-3">
           {method === "email" ? (
@@ -232,7 +307,8 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input type={showPassword ? "text" : "password"} autoComplete="current-password" value={password}
+                <input type={showPassword ? "text" : "password"}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && submitCredentials()}
                   placeholder="Password" className={`${field} pr-11`} />
@@ -265,12 +341,42 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
           <button onClick={submitCredentials} disabled={busy}
             className="flex w-full items-center justify-center gap-2 rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white transition-colors k-dis">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {busy ? "Sending code" : "Send verification code"}
+            {busy
+              ? (method === "phone" ? "Sending code" : mode === "signup" ? "Creating account" : "Signing in")
+              : (method === "phone" ? "Send verification code" : mode === "signup" ? "Create account" : "Sign in")}
           </button>
-          {method === "email" && (
-            <button className="w-full text-center text-xs font-semibold k-tx-005A36">Forgot your password?</button>
+
+          {method === "email" && mode === "signin" && (
+            <button onClick={startEmailOtp} disabled={busy}
+              className="w-full text-center text-xs font-semibold k-tx-005A36">
+              Or email me a one-time code instead
+            </button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  /* ---- signup issued, but Supabase requires email confirmation first ---- */
+  if (step === "confirmEmail") {
+    return (
+      <div className="flex min-h-full flex-col px-5 pb-6 pt-6">
+        <button onClick={back}
+          className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-900 ring-1 ring-slate-200">
+          <ArrowLeft className="h-4 w-4" />Back
+        </button>
+        <span className="mt-5 grid h-12 w-12 place-items-center rounded-2xl k-bg-E7F4EE k-tx-005A36">
+          <MailCheck className="h-6 w-6" />
+        </span>
+        <h2 className="mt-4 text-xl font-bold tracking-tight text-slate-900">Check your email</h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          We sent a confirmation link to <span className="font-semibold text-slate-900">{email}</span>. Open it, then
+          come back here and sign in.
+        </p>
+        <button onClick={() => { setMode("signin"); setStep("credentials"); }}
+          className="mt-6 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white">
+          Back to sign in
+        </button>
       </div>
     );
   }
@@ -320,7 +426,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
         </p>
 
         <button
-          onClick={() => onAuthenticated({ method, identity, trustDevice, consent, signedInAt: new Date() })}
+          onClick={() => onAuthenticated({ ...pendingAuth, trustDevice, consent, signedInAt: new Date() })}
           className="mt-5 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white">
           Agree and continue
         </button>
@@ -328,7 +434,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
     );
   }
 
-  /* ---- two-step verification ---- */
+  /* ---- two-step verification (email/phone OTP only) ---- */
   const complete = digits.every(Boolean);
   return (
     <div className="flex min-h-full flex-col px-5 pb-6 pt-6">
@@ -377,13 +483,10 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang }) 
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         {busy ? "Checking code" : "Verify and continue"}
       </button>
-      <button onClick={() => setResendIn(30)} disabled={resendIn > 0}
+      <button onClick={() => (method === "phone" ? submitCredentials() : startEmailOtp())} disabled={resendIn > 0}
         className="mt-3 w-full text-center text-xs font-semibold k-tx-005A36 k-dis-tx">
         {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
       </button>
-      <p className="mt-auto rounded-xl bg-slate-100 p-3 text-center text-[11px] leading-relaxed text-slate-600">
-        Demo build — the code is {DEMO_CODE}.
-      </p>
     </div>
   );
 }
