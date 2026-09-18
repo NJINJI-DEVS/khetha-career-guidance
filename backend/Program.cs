@@ -1,6 +1,7 @@
 using CareerAdvisor.Api.Data;
 using CareerAdvisor.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -48,7 +49,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
         };
     });
-builder.Services.AddAuthorization();
+// AdminAuthorizationHandler is Scoped (not the framework's typical Singleton
+// registration for handlers) because it injects AppDbContext.
+builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.Requirements.Add(new AdminRequirement()));
+});
 
 // ---- App services -----------------------------------------------------------
 builder.Services.AddSingleton<IVaultSecretService>(vault);
@@ -57,6 +64,10 @@ builder.Services.AddScoped<ICourseMatchingService, CourseMatchingService>();
 builder.Services.AddScoped<IOfoImportService, OfoImportService>();
 builder.Services.AddScoped<ISaqaImportService, SaqaImportService>();
 builder.Services.AddHttpClient<IGovernmentPortalScraperService, GovernmentPortalScraperService>();
+builder.Services.AddScoped<ISaIdService, SaIdService>();
+builder.Services.AddScoped<IRiskFlagsService, RiskFlagsService>();
+builder.Services.AddScoped<IRedactionService, RedactionService>();
+builder.Services.AddScoped<ISmsSummaryService, SmsSummaryService>();
 
 // ---- CORS for the React PWA -------------------------------------------------
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
