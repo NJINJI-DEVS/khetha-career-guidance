@@ -2,9 +2,9 @@
 // Originally an inline closure over `settings`/`setTab`/`setRoute`/`unread`;
 // converted to explicit props so it can live in its own file — the root now
 // does `onOpenNotifications={() => { setTab("me"); setRoute(null); }}`.
-import { WifiOff, Bell } from 'lucide-react';
+import { WifiOff, Bell, LogOut } from 'lucide-react';
 
-export function HeaderActions({ offline, saveOffline, unread, onOpenNotifications }) {
+export function HeaderActions({ offline, saveOffline, unread, onOpenNotifications, onSignOut }) {
   return (
     <div className="flex items-center gap-1.5">
       {(offline || saveOffline) && (
@@ -22,6 +22,12 @@ export function HeaderActions({ offline, saveOffline, unread, onOpenNotification
           </span>
         )}
       </button>
+      {onSignOut && (
+        <button onClick={onSignOut} aria-label="Log out"
+          className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200">
+          <LogOut className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }

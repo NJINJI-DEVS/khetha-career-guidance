@@ -38,7 +38,8 @@ export function MobileShell({
             {session && (
               <div className="flex items-center gap-1.5">
                 <OfflinePill online={online} offline={offline} saveOffline={saveOffline} onGoOffline={onGoOffline} t={t} />
-                <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications} />
+                <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications}
+                  onSignOut={() => { setRole(null); setSession(null); setRoute(null); }} />
               </div>
             )}
           </div>
@@ -50,7 +51,7 @@ export function MobileShell({
               </span>
               <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900">{ROLES[role].label}</span>
               <button onClick={() => { setRole(null); setSession(null); setRoute(null); }}
-                className="shrink-0 text-[10px] font-semibold text-slate-600">Switch</button>
+                className="shrink-0 text-[10px] font-semibold text-slate-600">Log out</button>
             </div>
           )}
         </div>
