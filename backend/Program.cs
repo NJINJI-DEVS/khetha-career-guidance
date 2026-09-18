@@ -20,14 +20,11 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
        .UseSnakeCaseNamingConvention());
 
 // ---- Auth: validate Supabase-issued JWTs -----------------------------------
-// Supabase Auth issues standard JWTs signed with your project's JWT secret.
-// The React frontend authenticates via supabase-js and sends the access_token
-// as a Bearer header; this API just validates it rather than issuing its own.
-// The secret itself is fetched from Supabase Vault (see VaultSecretService) rather
-// than kept in plaintext config — it's the one piece here that's actually secret;
-// Supabase:Url is just the project's public URL.
-var vault = new VaultSecretService(connectionString);
-var supabaseJwtSecret = await vault.GetRequiredSecretAsync("supabase_jwt_secret");
+// Supabase Auth issues JWTs signed with the project's JWT Signing Key. This
+// project uses the newer asymmetric (ES256) key rather than a legacy shared
+// HS256 secret, so there is no static secret to hold anywhere — validation
+// uses the project's public JWKS instead, which the JwtBearer handler fetches
+// (and refreshes) itself from Supabase's standard OIDC discovery document.
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -38,10 +35,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // silently breaks every controller that reads Supabase's "sub" claim by name
         // (see MatriculantsController.CurrentUserId).
         options.MapInboundClaims = false;
+        options.Authority = $"{supabaseUrl}/auth/v1";
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(supabaseJwtSecret)),
             ValidateIssuer = true,
             ValidIssuer = $"{supabaseUrl}/auth/v1",
             ValidateAudience = true,
@@ -58,7 +55,6 @@ builder.Services.AddAuthorization(options =>
 });
 
 // ---- App services -----------------------------------------------------------
-builder.Services.AddSingleton<IVaultSecretService>(vault);
 builder.Services.AddScoped<IApsCalculatorService, ApsCalculatorService>();
 builder.Services.AddScoped<ICourseMatchingService, CourseMatchingService>();
 builder.Services.AddScoped<IOfoImportService, OfoImportService>();
