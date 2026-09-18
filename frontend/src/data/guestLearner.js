@@ -29,6 +29,6 @@ export const GUEST_SESSION = {
   identity: "Guest",
   guest: true,
   trustDevice: false,
-  consent: { core: true, ncap: false, notify: false, research: false },
+  consent: { core: true, notify: false, research: false },
   ageGate: null,
 };

@@ -79,6 +79,21 @@ public class MatriculantsController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    /// <summary>Backs the real "Delete Results" button in Settings — it used to
+    /// only clear React state client-side, leaving the server copy untouched
+    /// and due to be silently re-saved on the next debounced write. This
+    /// actually clears it server-side.</summary>
+    [HttpDelete("me/profile-data")]
+    public async Task<ActionResult> DeleteProfileData(CancellationToken ct)
+    {
+        var profile = await _db.Matriculants.FirstOrDefaultAsync(m => m.UserId == CurrentUserId, ct);
+        if (profile is null) return NotFound();
+
+        profile.ProfileData = null;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
 }
 
 public record ProfileDataDto(string? Data);

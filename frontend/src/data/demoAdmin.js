@@ -28,7 +28,7 @@ export const DEMO_ADMIN_SESSION = {
   identity: "Demo Administrator",
   demoAdmin: true,
   trustDevice: false,
-  consent: { core: true, ncap: true, notify: false, research: false },
+  consent: { core: true, notify: false, research: false },
   ageGate: { minor: false },
 };
 
