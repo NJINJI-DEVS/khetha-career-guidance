@@ -2,11 +2,12 @@
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
 import { Check } from 'lucide-react';
+import { HorizontalScroller } from '../ui/HorizontalScroller';
 
 /* Numbered rail shown at the top of the dashboard */
 export function JourneyRail({ t, journey, go }) {
   return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+    <HorizontalScroller className="-mx-4 flex gap-2 px-4 pb-1">
       {journey.steps.map((s) => {
         const Icon = s.icon;
         const isNext = journey.next?.key === s.key;
@@ -24,6 +25,6 @@ export function JourneyRail({ t, journey, go }) {
           </button>
         );
       })}
-    </div>
+    </HorizontalScroller>
   );
 }

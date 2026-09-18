@@ -1,9 +1,10 @@
 // Extracted from App.jsx (Stage 4 of frontend restructuring plan).
 import { KHETHA } from '../../theme/tokens';
+import { HorizontalScroller } from './HorizontalScroller';
 
 export function Chips({ options, value, onChange, colorFor }) {
   return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+    <HorizontalScroller className="-mx-4 flex gap-2 px-4 pb-1">
       {options.map((o) => {
         const on = value === o.key;
         const c = colorFor?.(o.key);
@@ -17,6 +18,6 @@ export function Chips({ options, value, onChange, colorFor }) {
           </button>
         );
       })}
-    </div>
+    </HorizontalScroller>
   );
 }

@@ -17,6 +17,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { submitMentorApplication, getMyAccountRole, claimAccountRole } from './lib/api';
 import { signOut } from './services/authService';
 import { Screen } from './components/ui/Screen';
+import { HorizontalScroller } from './components/ui/HorizontalScroller';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
@@ -421,6 +422,8 @@ export default function NjinjiCareerGuidance() {
       *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
     }
     .njinji-shell :focus-visible { outline: 3px solid ${THEME.gold}; outline-offset: 2px; }
+    .k-scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+    .k-scrollbar-none::-webkit-scrollbar { display: none; }
   `;
 
   const shellClass = [
@@ -560,14 +563,14 @@ export default function NjinjiCareerGuidance() {
 
       {session && (!isStudent || hasProfile) && !route && tab === "courses" && (
         <div className="p-4 pb-6">
-          <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
+          <HorizontalScroller className="-mx-4 mb-4 flex gap-2 px-4">
             {exploreTabs.map((x) => (
               <button key={x.key} onClick={() => setExploreTab(x.key)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                   exploreTab === x.key ? "bg-slate-900 text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"
                 }`}>{x.label}</button>
             ))}
-          </div>
+          </HorizontalScroller>
           {exploreTab === "careers" && (
             <CareersDirectory fav={profile.favourites} toggleFav={toggleFav}
               onOpen={(id) => go(`career:${id}`)} fieldFilter={fieldFilter} setFieldFilter={setFieldFilter} />

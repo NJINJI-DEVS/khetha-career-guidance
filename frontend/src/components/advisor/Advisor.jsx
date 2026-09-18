@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { LANGUAGES } from '../../data/i18n';
 import { GREETING, SCRIPTS, FALLBACK } from '../../data/advisorScript';
+import { HorizontalScroller } from '../ui/HorizontalScroller';
 
 export function Advisor({ appLang, profile, offline }) {
   /* Deliberately separate from the app language: a learner may read the
@@ -47,7 +48,7 @@ export function Advisor({ appLang, profile, offline }) {
             </p>
           </div>
         </div>
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
+        <HorizontalScroller className="mt-3 flex gap-1.5 pb-0.5" dotClassName="bg-white/30" dotActiveClassName="bg-white">
           {LANGUAGES.map((l) => (
             <button key={l.code}
               onClick={() => { setLang(l.code); setMessages((m) => [...m, { from: "bot", text: GREETING[l.code] }]); }}
@@ -57,7 +58,7 @@ export function Advisor({ appLang, profile, offline }) {
               {l.label}
             </button>
           ))}
-        </div>
+        </HorizontalScroller>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
@@ -83,15 +84,15 @@ export function Advisor({ appLang, profile, offline }) {
         <div ref={endRef} />
       </div>
 
-      <div className="-mb-1 shrink-0 overflow-x-auto px-3 pb-2">
-        <div className="flex gap-2">
+      <div className="-mb-1 shrink-0 px-3 pb-2">
+        <HorizontalScroller className="flex gap-2">
           {SCRIPTS.map((s) => (
             <button key={s.chip} onClick={() => send(s.chip)}
               className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold k-tx-005A36 ring-1 k-rg-A8DCC5">
               {s.chip}
             </button>
           ))}
-        </div>
+        </HorizontalScroller>
       </div>
 
       <div className="shrink-0 border-t border-slate-200 bg-white p-2.5">
