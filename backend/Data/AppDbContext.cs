@@ -86,6 +86,11 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<OfoCode>().HasIndex(o => o.Code).IsUnique().HasDatabaseName("ofo_codes_code_key");
         modelBuilder.Entity<OfoCode>().HasIndex(o => o.MajorGroup).HasDatabaseName("ix_ofo_codes_major_group");
+        // The learner-facing directory only ever queries published rows, filtered
+        // by career field — without these every browse is a full table scan once
+        // the catalogue is thousands of rows rather than twelve.
+        modelBuilder.Entity<OfoCode>().HasIndex(o => o.IsPublished).HasDatabaseName("ix_ofo_codes_is_published");
+        modelBuilder.Entity<OfoCode>().HasIndex(o => o.FieldKey).HasDatabaseName("ix_ofo_codes_field_key");
 
         modelBuilder.Entity<SaqaQualification>().HasIndex(s => s.SaqaId).IsUnique().HasDatabaseName("saqa_qualifications_saqa_id_key");
         modelBuilder.Entity<SaqaQualification>().HasIndex(s => s.NqfLevel).HasDatabaseName("ix_saqa_qualifications_nqf_level");

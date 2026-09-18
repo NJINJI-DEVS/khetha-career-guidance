@@ -59,6 +59,13 @@ builder.Services.AddScoped<IApsCalculatorService, ApsCalculatorService>();
 builder.Services.AddScoped<ICourseMatchingService, CourseMatchingService>();
 builder.Services.AddScoped<IOfoImportService, OfoImportService>();
 builder.Services.AddScoped<ISaqaImportService, SaqaImportService>();
+builder.Services.AddScoped<IOfoFileImportService, OfoFileImportService>();
+// Typed client: Gemini calls are slow for a batch of 25 occupations, so the
+// default 100s timeout is raised rather than failing a batch that was working.
+builder.Services.AddHttpClient<IOccupationEnrichmentService, OccupationEnrichmentService>(c =>
+{
+    c.Timeout = TimeSpan.FromMinutes(3);
+});
 builder.Services.AddHttpClient<IGovernmentPortalScraperService, GovernmentPortalScraperService>();
 builder.Services.AddHttpClient<IAdvisorService, AdvisorService>();
 builder.Services.AddScoped<ISaIdService, SaIdService>();
