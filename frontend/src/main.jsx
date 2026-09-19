@@ -2,10 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { SettingsProvider } from './context/SettingsContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { SharedCvRoute } from './components/cv/CvWizard';
 import './index.css';
+// Loaded after index.css so the dark-mode neutral overrides sit below
+// Tailwind's utilities in the cascade.
+import './theme/theme.css';
 
 // Note: intentionally not wrapped in <React.StrictMode>. The app relies on several
 // effects (OTP timers, auto-created notifications) that StrictMode's dev-only double-
@@ -21,13 +25,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   sharedCvToken ? (
     <SharedCvRoute token={sharedCvToken} />
   ) : (
-    <SettingsProvider>
-      <AuthProvider>
-        <ProfileProvider>
-          <App />
-        </ProfileProvider>
-      </AuthProvider>
-    </SettingsProvider>
+    <ThemeProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <ProfileProvider>
+            <App />
+          </ProfileProvider>
+        </AuthProvider>
+      </SettingsProvider>
+    </ThemeProvider>
   )
 );
 

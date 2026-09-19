@@ -17,7 +17,31 @@
     <meta name="apple-mobile-web-app-title" content="Khetha" />
     <meta name="mobile-web-app-capable" content="yes" />
 
-    <title>Njinji Career Guidance — Khetha NCAP</title>
+    <title>Khetha Career Guidance — NCAP</title>
+
+    <!--
+      Theme is resolved before the first paint, synchronously, so a learner who
+      uses dark mode never sees a white flash while the bundle loads. Inline and
+      blocking on purpose: moving it into main.jsx is what causes the flash.
+    -->
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem('khetha.theme');
+          if (m !== 'light' && m !== 'dark') m = 'system';
+          var dark = m === 'dark' ||
+            (m === 'system' && window.matchMedia &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+          if (dark) {
+            var t = document.querySelector('meta[name="theme-color"]');
+            if (t) t.setAttribute('content', '#0B1220');
+          }
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

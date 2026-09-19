@@ -1,0 +1,312 @@
+/* ==========================================================================
+   Khetha design tokens
+   --------------------------------------------------------------------------
+   Every colour in the app resolves through a custom property declared here.
+
+   The `k-*` utility classes are named after the light-mode hex they originally
+   held (`k-bg-005A36`) because ~110 components already reference them by that
+   name. Renaming them would have meant touching every one of those files, so
+   the names stayed and the *values* became variables. The name is now a label,
+   not a literal: in dark mode `k-bg-005A36` is not #005A36.
+
+   `!important` is carried over from the original injected stylesheet — it is
+   what lets these beat Tailwind's own utilities on elements that carry both.
+
+   Palette follows the NCAP / Khetha identity: deep forest green as primary,
+   national gold as accent, slate for structure.
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --k-green-deep: #005A36;   /* primary surfaces: buttons, headers */
+  --k-green: #00784A;        /* hover / secondary brand */
+  --k-green-ink: #00432A;    /* gradient end, deepest brand tone */
+  --k-gold: #D4AF37;         /* accent, focus rings */
+  --k-gold-soft: #F4E8C9;
+  --k-blue: #1E3A6E;
+  --k-red: #B3261E;
+
+  /* Brand used as *text* on a neutral surface. Separate from the surface
+     tokens above because a colour legible as a background is rarely legible
+     as 12px text on that same background. */
+  --k-tx-green: #005A36;
+  --k-tx-green-mid: #00784A;
+  --k-tx-blue: #1E3A6E;
+  --k-tx-red: #B3261E;
+  --k-tx-gold: #D4AF37;
+  --k-tx-ink: #0F172A;
+
+  /* Tinted status surfaces, and the ink that sits on them */
+  --k-tint-green: #E7F4EE;
+  --k-tint-gold: #FBF5E7;
+  --k-tint-red: #FBEAE8;
+  --k-tint-blue: #EAEFF7;
+  --k-ink-green: #005A36;
+  --k-ink-gold: #6B5307;
+  --k-ink-red: #9B1C14;
+  --k-ink-blue: #1E3A6E;
+
+  /* Text on the brand gradient */
+  --k-on-brand: #BFE5D4;
+
+  /* Borders and rings */
+  --k-bd-green: #00784A;
+  --k-bd-green-deep: #005A36;
+  --k-bd-green-ink: #00432A;
+  --k-bd-gold: #E4CE8A;
+  --k-bd-red: #E5A79F;
+  --k-rg-green: #A8DCC5;
+  --k-rg-green-mid: #00784A;
+  --k-rg-gold: #E4CE8A;
+  --k-rg-red: #F2CBC7;
+  --k-rg-blue: #C3CFE4;
+
+  /* Translucent brand fill used inside the gradient header */
+  --k-brand-inset: rgba(0, 67, 42, 0.6);
+
+  /* Disabled */
+  --k-dis-bg: #E2E8F0;
+  --k-dis-tx: #475569;
+
+  /* Neutral scale. Dark mode redefines these and the Tailwind bridge below
+     repoints Tailwind's own slate utilities at them. */
+  --k-page: #F8FAFC;
+  --k-surface: #FFFFFF;
+  --k-sunken: #F8FAFC;
+  --k-sunken-strong: #F1F5F9;
+  --k-ink: #0F172A;
+  --k-ink-strong: #1E293B;
+  --k-ink-muted: #475569;
+  --k-ink-faint: #64748B;
+  --k-border: #E2E8F0;
+  --k-border-strong: #CBD5E1;
+  --k-inverse-surface: #0F172A;
+  --k-inverse-ink: #FFFFFF;
+
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   Dark mode
+   --------------------------------------------------------------------------
+   Applied by `data-theme="dark"` on <html>, set by the theme controller — not
+   by a bare `prefers-color-scheme` media query. The OS preference is the
+   default, but a person who has explicitly chosen Light must keep Light even
+   when their phone flips to dark to save battery, so the decision is resolved
+   in JS and written to the attribute.
+
+   Brand greens are *not* simply lightened. A button still carries white text,
+   so its background has to stay dark enough to hold that contrast; it is the
+   green used as text that lifts.
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  --k-green-deep: #01804F;
+  --k-green: #029460;
+  --k-green-ink: #013D27;
+  --k-gold: #D9B84A;
+  --k-gold-soft: #3A3115;
+  --k-blue: #2C4F91;
+  --k-red: #C4362E;
+
+  --k-tx-green: #46C98D;
+  --k-tx-green-mid: #56D69B;
+  --k-tx-blue: #90AEE6;
+  --k-tx-red: #F0958C;
+  --k-tx-gold: #E0C263;
+  --k-tx-ink: #E8EDF5;
+
+  --k-tint-green: #10281F;
+  --k-tint-gold: #2A2413;
+  --k-tint-red: #2E1614;
+  --k-tint-blue: #141E33;
+  --k-ink-green: #7FD9AE;
+  --k-ink-gold: #E3C766;
+  --k-ink-red: #F2A9A2;
+  --k-ink-blue: #9DB6E8;
+
+  --k-on-brand: #A9DCC4;
+
+  --k-bd-green: #04AA6E;
+  --k-bd-green-deep: #01804F;
+  --k-bd-green-ink: #04AA6E;
+  --k-bd-gold: #5C4E20;
+  --k-bd-red: #6B2A25;
+  --k-rg-green: #1E6B4B;
+  --k-rg-green-mid: #04AA6E;
+  --k-rg-gold: #5C4E20;
+  --k-rg-red: #6B2A25;
+  --k-rg-blue: #2C4166;
+
+  --k-brand-inset: rgba(255, 255, 255, 0.08);
+
+  --k-dis-bg: #2A3548;
+  --k-dis-tx: #7A879C;
+
+  --k-page: #0B1220;
+  --k-surface: #151C2C;
+  --k-sunken: #111827;
+  --k-sunken-strong: #1E2637;
+  --k-ink: #E8EDF5;
+  --k-ink-strong: #D3DBE8;
+  --k-ink-muted: #9AA7BC;
+  --k-ink-faint: #8593A9;
+  --k-border: #2A3548;
+  --k-border-strong: #3A4761;
+  --k-inverse-surface: #33415A;
+  --k-inverse-ink: #FFFFFF;
+
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--k-page);
+  color: var(--k-ink);
+}
+
+/* ==========================================================================
+   Tailwind bridge
+   --------------------------------------------------------------------------
+   The app was written before dark mode existed, so it uses Tailwind's literal
+   neutrals (`bg-white`, `text-slate-600`, `border-slate-200`) in ~110 files.
+   Rather than add a `dark:` variant to every one of those, the utilities are
+   repointed at the neutral tokens when the dark attribute is present.
+
+   `[data-theme="dark"] .bg-white` is specificity (0,2,0) against Tailwind's
+   (0,1,0), so it wins without `!important`. This is the same technique the
+   existing high-contrast mode already uses.
+   ========================================================================== */
+[data-theme="dark"] .bg-white { background-color: var(--k-surface); }
+[data-theme="dark"] .bg-slate-50 { background-color: var(--k-sunken); }
+[data-theme="dark"] .bg-slate-100 { background-color: var(--k-sunken-strong); }
+[data-theme="dark"] .bg-slate-200 { background-color: var(--k-border); }
+[data-theme="dark"] .bg-slate-900 { background-color: var(--k-inverse-surface); }
+
+[data-theme="dark"] .text-slate-900 { color: var(--k-ink); }
+[data-theme="dark"] .text-slate-800 { color: var(--k-ink-strong); }
+[data-theme="dark"] .text-slate-700 { color: var(--k-ink-strong); }
+[data-theme="dark"] .text-slate-600 { color: var(--k-ink-muted); }
+[data-theme="dark"] .text-slate-500 { color: var(--k-ink-faint); }
+[data-theme="dark"] .text-slate-400 { color: var(--k-ink-faint); }
+
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200 { border-color: var(--k-border); }
+[data-theme="dark"] .border-slate-300 { border-color: var(--k-border-strong); }
+[data-theme="dark"] .divide-slate-100 > * + * { border-color: var(--k-border); }
+
+[data-theme="dark"] .ring-slate-200 { --tw-ring-color: var(--k-border); }
+[data-theme="dark"] .ring-slate-300 { --tw-ring-color: var(--k-border-strong); }
+[data-theme="dark"] .ring-slate-900 { --tw-ring-color: var(--k-inverse-surface); }
+
+/* Placeholders lose too much contrast against a dark field otherwise. */
+[data-theme="dark"] .placeholder\:text-slate-500::placeholder { color: var(--k-ink-faint); }
+
+/* Form controls are painted by the OS from color-scheme, but the app sets an
+   explicit white background on inputs, which would stay white. */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: var(--k-sunken-strong);
+  color: var(--k-ink);
+}
+
+/* ==========================================================================
+   Brand utilities
+   ========================================================================== */
+.k-grad-green { background-image: linear-gradient(to bottom right, var(--k-green-deep), var(--k-green-ink)) !important; }
+.k-fvr-D4AF37:focus-visible { --tw-ring-color: var(--k-gold) !important; outline-color: var(--k-gold); }
+.k-fb-00784A:focus { border-color: var(--k-green) !important; }
+
+.k-bg-E7F4EE { background-color: var(--k-tint-green) !important; }
+.k-bg-FBF5E7 { background-color: var(--k-tint-gold) !important; }
+.k-bg-FBEAE8 { background-color: var(--k-tint-red) !important; }
+.k-bg-EAEFF7 { background-color: var(--k-tint-blue) !important; }
+.k-bg-005A36 { background-color: var(--k-green-deep) !important; }
+.k-bg-B3261E { background-color: var(--k-red) !important; }
+.k-bg-1E3A6E { background-color: var(--k-blue) !important; }
+.k-bg-00784A { background-color: var(--k-green) !important; }
+.k-bg-D4AF37 { background-color: var(--k-gold) !important; }
+.k-bg-F4E8C9 { background-color: var(--k-gold-soft) !important; }
+.k-bg-00432A { background-color: var(--k-green-ink) !important; }
+.k-bg-00432A-60 { background-color: var(--k-brand-inset) !important; }
+
+.k-tx-005A36 { color: var(--k-tx-green) !important; }
+.k-tx-6B5307 { color: var(--k-ink-gold) !important; }
+.k-tx-9B1C14 { color: var(--k-ink-red) !important; }
+.k-tx-1E3A6E { color: var(--k-ink-blue) !important; }
+.k-tx-B3261E { color: var(--k-tx-red) !important; }
+.k-tx-00784A { color: var(--k-tx-green-mid) !important; }
+.k-tx-D4AF37 { color: var(--k-tx-gold) !important; }
+.k-tx-0F172A { color: var(--k-tx-ink) !important; }
+.k-tx-BFE5D4 { color: var(--k-on-brand) !important; }
+
+.k-bd-00784A { border-color: var(--k-bd-green) !important; }
+.k-bd-005A36 { border-color: var(--k-bd-green-deep) !important; }
+.k-bd-E5A79F { border-color: var(--k-bd-red) !important; }
+.k-bd-00432A { border-color: var(--k-bd-green-ink) !important; }
+.k-bd-E4CE8A { border-color: var(--k-bd-gold) !important; }
+
+.k-rg-A8DCC5 { --tw-ring-color: var(--k-rg-green) !important; }
+.k-rg-E4CE8A { --tw-ring-color: var(--k-rg-gold) !important; }
+.k-rg-F2CBC7 { --tw-ring-color: var(--k-rg-red) !important; }
+.k-rg-C3CFE4 { --tw-ring-color: var(--k-rg-blue) !important; }
+.k-rg-00784A { --tw-ring-color: var(--k-rg-green-mid) !important; }
+
+.k-ac-00784A { accent-color: var(--k-green) !important; }
+
+.k-dis:disabled { background-color: var(--k-dis-bg) !important; background-image: none !important; color: var(--k-dis-tx) !important; }
+.k-dis-soft:disabled { opacity: .65; }
+.k-dis-tx:disabled { color: var(--k-ink-faint) !important; }
+
+.k-scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.k-scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ==========================================================================
+   Accessibility modes
+   ========================================================================== */
+@keyframes khetha-scan { from { top: 15%; } to { top: 78%; } }
+
+.khetha-hc .bg-white, .khetha-hc .bg-slate-50, .khetha-hc .bg-slate-100 { background-color: #FFFFFF !important; }
+.khetha-hc [class*="k-bg-"], .khetha-hc [class*="k-grad-"] { color: #FFFFFF !important; }
+.khetha-hc [class*="text-slate-6"], .khetha-hc [class*="text-slate-5"] { color: #000000 !important; }
+.khetha-hc [class*="border-slate"] { border-color: #000000 !important; }
+.khetha-hc [class*="ring-slate"] { --tw-ring-color: #000000 !important; }
+
+/* High contrast is an accessibility override, so it wins over dark mode: a
+   person who has asked for maximum contrast gets it regardless of theme. */
+[data-theme="dark"] .khetha-hc .bg-white,
+[data-theme="dark"] .khetha-hc .bg-slate-50,
+[data-theme="dark"] .khetha-hc .bg-slate-100 { background-color: #FFFFFF !important; }
+[data-theme="dark"] .khetha-hc [class*="text-slate"] { color: #000000 !important; }
+
+.khetha-reduce *, .khetha-reduce *::before, .khetha-reduce *::after {
+  animation-duration: 0.001ms !important; transition-duration: 0.001ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+.khetha-shell :focus-visible { outline: 3px solid var(--k-gold); outline-offset: 2px; }
+
+/* ==========================================================================
+   The CV is a document, not a screen
+   --------------------------------------------------------------------------
+   It is printed on A4 and read by applicant-tracking parsers. It stays on
+   white with black text in every theme — a dark CV would print as a black
+   rectangle and costs a learner their ink, or their application.
+   ========================================================================== */
+[data-theme="dark"] .cv-doc,
+[data-theme="dark"] .cv-doc * {
+  background-color: transparent;
+  border-color: #999;
+}
+[data-theme="dark"] .cv-doc { background-color: #FFFFFF; color: #111; }
+[data-theme="dark"] .cv-doc .text-slate-900,
+[data-theme="dark"] .cv-doc .text-slate-800,
+[data-theme="dark"] .cv-doc .text-slate-700 { color: #111; }
+[data-theme="dark"] .cv-doc .text-slate-600,
+[data-theme="dark"] .cv-doc .text-slate-500 { color: #444; }
+
+@media print {
+  :root, [data-theme="dark"] { color-scheme: light; }
+  body { background: #FFFFFF; color: #111; }
+}

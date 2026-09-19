@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { THEME } from './theme/tokens';
 import { QUALIFICATIONS, qualById } from './data/qualifications';
 import { providerById } from './data/providers';
 import { ROLES } from './data/roles';
@@ -9,6 +8,7 @@ import { pushHistory } from './engines/history';
 import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
+import { useThemeContext } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import { useProfile, DEFAULT_PROFILE } from './context/ProfileContext';
 import { useMatriculantProfile } from './hooks/useMatriculantProfile';
@@ -453,65 +453,14 @@ export default function KhethaCareerGuidance() {
     markAllNotificationsRead();
   };
 
-  const a11yCss = `
-    @keyframes njinji-scan { from { top: 15%; } to { top: 78%; } }
-    .k-grad-green{background-image:linear-gradient(to bottom right,#005A36,#00432A)!important}
-    .k-fvr-D4AF37:focus-visible{--tw-ring-color:#D4AF37!important;outline-color:#D4AF37}
-    .k-fb-00784A:focus{border-color:#00784A!important}
-    .k-bg-E7F4EE{background-color:#E7F4EE!important}
-    .k-bg-FBF5E7{background-color:#FBF5E7!important}
-    .k-bg-FBEAE8{background-color:#FBEAE8!important}
-    .k-bg-EAEFF7{background-color:#EAEFF7!important}
-    .k-bg-005A36{background-color:#005A36!important}
-    .k-bg-B3261E{background-color:#B3261E!important}
-    .k-bg-1E3A6E{background-color:#1E3A6E!important}
-    .k-bg-00784A{background-color:#00784A!important}
-    .k-bg-D4AF37{background-color:#D4AF37!important}
-    .k-bg-F4E8C9{background-color:#F4E8C9!important}
-    .k-bg-00432A{background-color:#00432A!important}
-    .k-tx-005A36{color:#005A36!important}
-    .k-tx-6B5307{color:#6B5307!important}
-    .k-tx-9B1C14{color:#9B1C14!important}
-    .k-tx-1E3A6E{color:#1E3A6E!important}
-    .k-tx-B3261E{color:#B3261E!important}
-    .k-tx-00784A{color:#00784A!important}
-    .k-tx-D4AF37{color:#D4AF37!important}
-    .k-tx-0F172A{color:#0F172A!important}
-    .k-tx-BFE5D4{color:#BFE5D4!important}
-    .k-bd-00784A{border-color:#00784A!important}
-    .k-bd-005A36{border-color:#005A36!important}
-    .k-bd-E5A79F{border-color:#E5A79F!important}
-    .k-bd-00432A{border-color:#00432A!important}
-    .k-bd-E4CE8A{border-color:#E4CE8A!important}
-    .k-rg-A8DCC5{--tw-ring-color:#A8DCC5!important}
-    .k-rg-E4CE8A{--tw-ring-color:#E4CE8A!important}
-    .k-rg-F2CBC7{--tw-ring-color:#F2CBC7!important}
-    .k-rg-C3CFE4{--tw-ring-color:#C3CFE4!important}
-    .k-rg-00784A{--tw-ring-color:#00784A!important}
-    .k-ac-00784A{accent-color:#00784A!important}
-    .k-dis:disabled{background-color:#E2E8F0!important;background-image:none!important;color:#475569!important}
-    .k-dis-soft:disabled{opacity:.65}
-    .k-dis-tx:disabled{color:#64748B!important}
-    .njinji-hc .bg-white, .njinji-hc .bg-slate-50, .njinji-hc .bg-slate-100 { background-color: #FFFFFF !important; }
-    .njinji-hc [class*="k-bg-"], .njinji-hc [class*="k-grad-"] { color: #FFFFFF !important; }
-    .njinji-hc [class*="text-slate-6"], .njinji-hc [class*="text-slate-5"] { color: #000000 !important; }
-    .njinji-hc [class*="border-slate"] { border-color: #000000 !important; }
-    .njinji-hc [class*="ring-slate"] { --tw-ring-color: #000000 !important; }
-    .njinji-reduce *, .njinji-reduce *::before, .njinji-reduce *::after {
-      animation-duration: 0.001ms !important; transition-duration: 0.001ms !important;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
-    }
-    .njinji-shell :focus-visible { outline: 3px solid ${THEME.gold}; outline-offset: 2px; }
-    .k-scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
-    .k-scrollbar-none::-webkit-scrollbar { display: none; }
-  `;
-
+  // Brand utilities, the dark-mode bridge and the accessibility modes all live
+  // in theme/theme.css now. They used to be injected from here as a template
+  // string of hardcoded hex values, which is precisely what made dark mode
+  // impossible: every colour was baked in with !important.
   const shellClass = [
-    "njinji-shell",
-    settings.highContrast ? "njinji-hc" : "",
-    settings.reduceMotion ? "njinji-reduce" : "",
+    "khetha-shell",
+    settings.highContrast ? "khetha-hc" : "",
+    settings.reduceMotion ? "khetha-reduce" : "",
   ].join(" ");
 
   /* ---- shared content, rendered into either layout ----------------- */
@@ -818,7 +767,6 @@ export default function KhethaCareerGuidance() {
 
   return (
     <div className="min-h-screen w-full bg-slate-200">
-      <style>{a11yCss}</style>
       {layout === "desktop" ? desktopShell : mobileShell}
     </div>
   );

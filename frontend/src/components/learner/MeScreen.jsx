@@ -5,7 +5,7 @@ import { useState } from 'react';
 import {
   ShieldCheck, Plug, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
   BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
-  Settings, Pencil, Route, Monitor, Download,
+  Settings, Pencil, Route, Monitor, Download, SunMoon, Compass,
 } from 'lucide-react';
 import { Avatar, ProfileEditor } from './ProfileEditor';
 import { occById } from '../../data/occupations';
