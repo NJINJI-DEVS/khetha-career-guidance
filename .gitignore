@@ -33,8 +33,6 @@ obj/
 [Dd]ebug/
 [Rr]elease/
 publish/
-publish-output/
-publish.zip
 *.pubxml
 *.pubxml.user
 *.azurePubxml

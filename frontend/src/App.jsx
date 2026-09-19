@@ -22,6 +22,7 @@ import { HorizontalScroller } from './components/ui/HorizontalScroller';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { AdminLogin } from './components/auth/AdminLogin';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { AdminSignIn } from './components/auth/AdminSignIn';
 import { GuestBanner, GuestGate } from './components/auth/GuestGate';
@@ -656,6 +657,9 @@ export default function KhethaCareerGuidance() {
           onPick={(r) => { setRole(r); setTab(r === "student" ? "dashboard" : "workspace"); }} />
       )}
 
+      {!pendingRoleIssue && role === 'admin' && !session && (
+        <AdminLogin onBack={() => setRole(null)} onAuthenticated={(s) => resolveAccountRole('admin', s)} />
+      )}
       {!pendingRoleIssue && role && role !== 'admin' && !session && (
         <AuthScreen key={role} role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}

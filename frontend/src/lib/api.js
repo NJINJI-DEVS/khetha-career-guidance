@@ -37,6 +37,7 @@ export async function apiFetch(path, options = {}) {
 // --- Account role (binds a Supabase account to one role, permanently) ---
 
 export const getMyAccountRole = () => apiFetch('/api/account/role');
+export const getMyAdminAccount = () => apiFetch('/api/admin/me');
 
 export const claimAccountRole = (role) =>
   apiFetch('/api/account/role', { method: 'POST', body: JSON.stringify({ role }) });
