@@ -28,7 +28,6 @@ export const GUEST_SESSION = {
   method: "guest",
   identity: "Guest",
   guest: true,
-  trustDevice: false,
   consent: { core: true, notify: false, research: false },
   ageGate: null,
 };

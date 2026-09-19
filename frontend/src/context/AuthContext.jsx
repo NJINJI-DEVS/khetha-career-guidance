@@ -49,7 +49,6 @@ export function AuthProvider({ children }) {
             identity: admin.email || supaSession.user.email,
             admin,
             isAdmin: true,
-            trustDevice: true,
             consent: { core: true, notify: false, research: false },
             ageGate: { minor: false },
             signedInAt: new Date(),
@@ -65,7 +64,6 @@ export function AuthProvider({ children }) {
             method: supaSession.user.phone ? 'phone' : 'email',
             identity: supaSession.user.email || supaSession.user.phone,
             role: accountRole,
-            trustDevice: true,
             consent: consentRecord
               ? { core: consentRecord.core, notify: consentRecord.notify, research: consentRecord.research }
               : { core: true, notify: false, research: false },
