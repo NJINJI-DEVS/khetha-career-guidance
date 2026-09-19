@@ -61,7 +61,6 @@ export function AdminSignIn({ onBack, onAuthenticated }) {
         identity: admin.email || creds.email,
         admin,
         isAdmin: true,
-        trustDevice: false,
         consent: { core: true, notify: false, research: false },
         ageGate: { minor: false },
         signedInAt: new Date(),

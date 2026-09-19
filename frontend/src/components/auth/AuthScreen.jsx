@@ -37,7 +37,6 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
   const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(""));
-  const [trustDevice, setTrustDevice] = useState(true);
   const [consent, setConsent] = useState({ core: true, notify: true, research: false });
   const [ageGate, setAgeGate] = useState(null);   /* {minor, guardian?} — POPIA gate, see GuardianConsent */
   const [error, setError] = useState("");
@@ -76,7 +75,6 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
 
     const enter = (consentRecord) => onAuthenticated({
       ...auth,
-      trustDevice,
       consent: consentRecord
         ? { core: consentRecord.core, notify: consentRecord.notify,
             research: consentRecord.research }
@@ -251,7 +249,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
         guardianContact: gate.guardian?.contact ?? null,
       });
       onAuthenticated({
-        ...pendingAuth, trustDevice, consent, ageGate: gate,
+        ...pendingAuth, consent, ageGate: gate,
         consentOnFile: true, signedInAt: new Date(),
       });
     } catch (err) {
@@ -592,17 +590,6 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{error}
         </p>
       )}
-
-      <button onClick={() => setTrustDevice((v) => !v)} className="mt-5 flex items-center gap-2.5 text-left">
-        <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
-          trustDevice ? "k-bd-005A36 k-bg-005A36 text-white" : "border-slate-300 bg-white"
-        }`}>
-          {trustDevice && <Check className="h-3.5 w-3.5" />}
-        </span>
-        <span className="text-xs leading-relaxed text-slate-600">
-          Trust this phone for 30 days. Only tick this on a device that is yours, not a shared or school computer.
-        </span>
-      </button>
 
       <button onClick={verify} disabled={busy || !complete}
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white transition-colors k-dis">
