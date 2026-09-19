@@ -30,7 +30,7 @@ const GRADE_TO_LEVEL = { 9: 'grade9', 10: 'grade10', 11: 'grade11', 12: 'matric'
 
 const SUBJECT_OPTIONS = Object.values(SUBJECT_LABELS);
 
-export function OnboardingScreen({ onSubmit, onSignOut }) {
+export function OnboardingScreen({ onSubmit, onSignOut, dateOfBirth }) {
   const [fullName, setFullName] = useState('');
   const [grade, setGrade] = useState(12);
   const [province, setProvince] = useState(PROVINCES[2]);
@@ -68,6 +68,7 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
         grade,
         school: school.trim() || null,
         province,
+        dateOfBirth: dateOfBirth || null,
         subjects: needsSubjects ? subjects : [],
         preferences: {
           ...preferences,
@@ -117,6 +118,14 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
             placeholder="Your school's name"
             className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 k-fb-00784A focus:outline-none focus-visible:ring-2 k-fvr-D4AF37" />
         </div>
+
+        {dateOfBirth && (
+          <p className="rounded-xl bg-slate-100 px-3 py-2.5 text-xs text-slate-600">
+            Date of birth: <span className="font-semibold text-slate-900">
+              {new Date(dateOfBirth).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
+            </span> — captured when you signed up.
+          </p>
+        )}
 
         {needsSubjects ? (
           <div>

@@ -15,7 +15,7 @@ import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { useHelpRequests } from './hooks/useHelpRequests';
 import { useMentorApplications } from './hooks/useMentorApplications';
 import { useNotifications } from './hooks/useNotifications';
-import { submitMentorApplication, getMyAccountRole, claimAccountRole, saveMyConsent } from './lib/api';
+import { submitMentorApplication, getMyAccountRole, claimAccountRole, getMyMatriculantProfile, deleteMyProfileData, saveMyConsent } from './lib/api';
 import { signOut } from './services/authService';
 import { Screen } from './components/ui/Screen';
 import { HorizontalScroller } from './components/ui/HorizontalScroller';
@@ -492,7 +492,7 @@ export default function KhethaCareerGuidance() {
       const favourites = on ? p.favourites.filter((x) => x !== id) : [...p.favourites, id];
       if (!on && qualById[id] && settings.notifyDeadlines) {
         addLocalNotification({ id: `d-${id}`, title: `${qualById[id].title} closes ${qualById[id].deadline}`,
-          body: "We'll remind you two weeks and three days before.", read: false, target: `qual:${id}` });
+          body: "Saved — find the closing date any time under Me → Saved.", read: false, target: `qual:${id}` });
       }
       return { ...p, favourites };
     });
@@ -500,6 +500,30 @@ export default function KhethaCareerGuidance() {
 
   const remindEvent = (e) =>
     addLocalNotification({ id: `e-${e.id}`, title: e.title, body: `${e.date} · ${e.venue}`, read: false, target: "advice" });
+
+  /* Real data-portability/deletion, backing the Settings > Privacy buttons.
+     Export re-fetches the raw backend record (not the frontend's adapted
+     `learner` shape) so what downloads is genuinely everything held about
+     the account. Delete clears the server copy, not just local state — a
+     local-only clear used to get silently re-saved by the subjects/profile
+     debounce effects the next time either changed. */
+  const exportMyData = async () => {
+    const raw = await getMyMatriculantProfile();
+    const blob = new Blob([JSON.stringify(raw, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `khetha-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const deleteMyResults = async () => {
+    await deleteMyProfileData();
+    setProfile((p) => ({ ...p, favourites: [], careerChoice: null, jobFit: null, subjectResult: null }));
+  };
 
   const unread = notifications.filter((n) => !n.read).length;
   const markAllRead = () => {
@@ -615,6 +639,7 @@ export default function KhethaCareerGuidance() {
       {session && isStudent && !isGuest && profileStatus === 'no-profile' && (
         <OnboardingScreen
           onSubmit={createProfile}
+          dateOfBirth={session?.ageGate?.dateOfBirth || null}
           onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
         />
       )}
@@ -747,7 +772,8 @@ export default function KhethaCareerGuidance() {
           aps={aps} go={go} packs={packs} togglePack={togglePack}
           viewport={viewport} setViewport={setViewport}
           onToggleConsent={toggleConsent} consentSaving={consentSaving} consentError={consentError}
-          installable={!!installEvent} onInstall={install} />
+          installable={!!installEvent} onInstall={install}
+          onExportData={isStudent ? exportMyData : null} onDeleteResults={isStudent ? deleteMyResults : null} />
       )}
     </>
   );

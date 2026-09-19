@@ -38,7 +38,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
   const [phone, setPhone] = useState("");
   const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(""));
   const [trustDevice, setTrustDevice] = useState(true);
-  const [consent, setConsent] = useState({ core: true, ncap: true, notify: true, research: false });
+  const [consent, setConsent] = useState({ core: true, notify: true, research: false });
   const [ageGate, setAgeGate] = useState(null);   /* {minor, guardian?} — POPIA gate, see GuardianConsent */
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

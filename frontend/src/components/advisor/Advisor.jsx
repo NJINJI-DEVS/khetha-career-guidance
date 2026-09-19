@@ -6,6 +6,7 @@ import { Loader2, Send } from 'lucide-react';
 import { LANGUAGES } from '../../data/i18n';
 import { GREETING, SCRIPTS, FALLBACK } from '../../data/advisorScript';
 import { HorizontalScroller } from '../ui/HorizontalScroller';
+import { askAdvisor } from '../../lib/api';
 
 export function Advisor({ appLang, profile, offline }) {
   /* Deliberately separate from the app language: a learner may read the
@@ -18,22 +19,34 @@ export function Advisor({ appLang, profile, offline }) {
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [messages, typing]);
 
-  const reply = (text) => {
+  // Instant, free, works offline — tried first for the handful of most
+  // common questions. Anything that doesn't match falls through to a real
+  // AI call (see api.askAdvisor / backend/Services/AdvisorService.cs); if
+  // that's unavailable (offline, no session, key not configured, network
+  // error), this degrades to the same static fallback text rather than
+  // breaking the chat.
+  const reply = async (text) => {
     const lower = text.toLowerCase();
     const hit = SCRIPTS.find((s) => s.match.some((m) => lower.includes(m)));
-    const dict = hit ? hit.replies : FALLBACK;
-    return dict[lang] || dict.en;
+    if (hit) return hit.replies[lang] || hit.replies.en;
+
+    if (!offline) {
+      try {
+        const { reply: aiReply } = await askAdvisor(text, lang);
+        return aiReply;
+      } catch { /* fall through to the static fallback below */ }
+    }
+    return FALLBACK[lang] || FALLBACK.en;
   };
 
-  const send = (text) => {
+  const send = async (text) => {
     const clean = text.trim();
     if (!clean) return;
     setMessages((m) => [...m, { from: "me", text: clean }]);
     setDraft(""); setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      setMessages((m) => [...m, { from: "bot", text: reply(clean) }]);
-    }, 650);
+    const botReply = await reply(clean);
+    setTyping(false);
+    setMessages((m) => [...m, { from: "bot", text: botReply }]);
   };
 
   return (

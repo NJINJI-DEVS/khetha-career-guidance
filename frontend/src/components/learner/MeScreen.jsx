@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import {
-  ShieldCheck, Plug, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
+  ShieldCheck, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
   BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
   Settings, Pencil, Route, Monitor, Download, SunMoon, Compass,
 } from 'lucide-react';
@@ -25,10 +25,13 @@ import { useThemeContext } from '../../context/ThemeContext';
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onToggleConsent, consentSaving, consentError }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults, onToggleConsent, consentSaving, consentError }) {
   const [tab, setTab] = useState("journey");
   const { mode: themeMode, setMode: setThemeMode, theme: resolvedTheme } = useThemeContext();
   const [editorOpen, setEditorOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [privacyError, setPrivacyError] = useState("");
   const shownName = profile.displayName || session.identity;
   const favCareers = profile.favourites.filter((id) => occById[id]);
   const favQuals = profile.favourites.filter((id) => qualById[id]);
@@ -59,7 +62,6 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Pill tone="green" icon={ShieldCheck}>2-step on</Pill>
-            {session.consent?.ncap && <Pill tone="blue" icon={Plug}>NCAP synced</Pill>}
             {session.ageGate?.minor && <Pill tone="gold" icon={Users}>Guardian consent on file</Pill>}
           </div>
         </div>
@@ -373,7 +375,7 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
               <BellRing className="h-4 w-4" />{t("notifications")}
             </p>
             {[
-              { key: "notifyDeadlines", label: "Application deadlines", note: "Two weeks and three days before each closing date." },
+              { key: "notifyDeadlines", label: "Application deadlines", note: "Confirms the closing date the moment you save a qualification." },
               { key: "notifyEvents", label: "Events in my province", note: "Career expos, open days and workshops." },
               { key: "notifyNsfas", label: "NSFAS and funding dates", note: "Opening and closing of the funding window." },
             ].map((o) => (
@@ -388,26 +390,6 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
                 </span>
               </button>
             ))}
-          </div>
-
-          {/* A1 / A2 */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <Plug className="h-4 w-4" />NCAP connection
-            </p>
-            <div className="mt-3 space-y-2 text-[11px]">
-              {[
-                ["Status", session.consent?.ncap ? "Connected" : "Not connected"],
-                ["Endpoint", "api.careerhelp.org.za/v1"],
-                ["Last sync", "Today, 06:14"],
-                ["Conflicts", "None — NCAP record is the source of truth"],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between gap-3">
-                  <span className="text-slate-600">{k}</span>
-                  <span className="font-medium text-slate-900">{v}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -456,18 +438,35 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
               })}
             </div>
             {consentError && <p className="mt-2 text-[11px] k-tx-9B1C14">{consentError}</p>}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900">
-                <FileDown className="h-3.5 w-3.5" />{t("exportData")}
-              </button>
-              <button
-                onClick={() => setProfile((p) => ({ ...p, favourites: [], careerChoice: null, jobFit: null, subjectResult: null }))}
-                className="flex items-center justify-center gap-1.5 rounded-lg k-bg-FBEAE8 py-2 text-[11px] font-semibold k-tx-9B1C14">
-                <Trash2 className="h-3.5 w-3.5" />{t("deleteResults")}
-              </button>
-            </div>
+            {onExportData && onDeleteResults ? (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button disabled={exporting}
+                    onClick={async () => {
+                      setPrivacyError(""); setExporting(true);
+                      try { await onExportData(); }
+                      catch (err) { setPrivacyError(err.message || "Couldn't export your data. Try again."); }
+                      finally { setExporting(false); }
+                    }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900 k-dis-tx">
+                    <FileDown className="h-3.5 w-3.5" />{exporting ? "Preparing…" : t("exportData")}
+                  </button>
+                  <button disabled={deleting}
+                    onClick={async () => {
+                      setPrivacyError(""); setDeleting(true);
+                      try { await onDeleteResults(); }
+                      catch (err) { setPrivacyError(err.message || "Couldn't delete your results. Try again."); }
+                      finally { setDeleting(false); }
+                    }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg k-bg-FBEAE8 py-2 text-[11px] font-semibold k-tx-9B1C14 k-dis-tx">
+                    <Trash2 className="h-3.5 w-3.5" />{deleting ? "Deleting…" : t("deleteResults")}
+                  </button>
+                </div>
+                {privacyError && <p className="mt-2 text-[11px] k-tx-9B1C14">{privacyError}</p>}
+              </>
+            ) : null}
             <p className="mt-3 text-[11px] leading-relaxed text-slate-600">
-              Data is encrypted in transit and at rest and stored in South Africa. Deleting your results is immediate
+              Data is encrypted in transit and at rest. Deleting your results clears them from our servers immediately
               and cannot be undone.
             </p>
           </div>
