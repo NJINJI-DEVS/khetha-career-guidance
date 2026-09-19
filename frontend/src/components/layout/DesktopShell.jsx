@@ -148,14 +148,6 @@ export function DesktopShell({
           <div className={tab === "advisor" ? "h-full" : "mx-auto w-full max-w-5xl"}>{body}</div>
         </main>
 
-        {session && !(tab === "advisor" && !route) && (
-          <button onClick={() => { setTab("advisor"); setRoute(null); }}
-            aria-label="Chat with the Khetha advisor"
-            className="absolute bottom-5 left-5 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 text-base font-bold k-tx-0F172A shadow-lg ring-2 ring-white">
-            K
-          </button>
-        )}
-
         {modals}
       </div>
     </div>

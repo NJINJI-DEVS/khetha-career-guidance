@@ -171,12 +171,21 @@ public class MentorApplicationsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Which verification tiers an approved applicant has earned.
+    ///
+    /// Returns STABLE KEYS ("id", "degree", "ngo"), not display labels. The
+    /// frontend looks these up in its TIERS map to pick a label, colour and
+    /// icon, so emitting "ID Verified" here produced an undefined lookup and
+    /// crashed the whole mentor directory. A label is a presentation concern
+    /// and belongs on the client, where it can also be translated.
+    /// </summary>
     private static string[] BuildVerificationTiers(MentorApplication app)
     {
         var tiers = new List<string>();
-        if (!string.IsNullOrEmpty(app.IdDocumentFilename)) tiers.Add("ID Verified");
-        if (!string.IsNullOrEmpty(app.TranscriptFilename) || !string.IsNullOrEmpty(app.LicenceNumber)) tiers.Add("Degree Verified");
-        if (!string.IsNullOrEmpty(app.PartnerName)) tiers.Add("NGO Vetted");
+        if (!string.IsNullOrEmpty(app.IdDocumentFilename)) tiers.Add("id");
+        if (!string.IsNullOrEmpty(app.TranscriptFilename) || !string.IsNullOrEmpty(app.LicenceNumber)) tiers.Add("degree");
+        if (!string.IsNullOrEmpty(app.PartnerName)) tiers.Add("ngo");
         return tiers.ToArray();
     }
 }
