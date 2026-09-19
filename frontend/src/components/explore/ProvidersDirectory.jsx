@@ -84,9 +84,10 @@ export function ProvidersDirectory({ fav, toggleFav }) {
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900">
               <Phone className="h-3.5 w-3.5" />{p.phone}
             </a>
-            <span className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900">
+            <a href={`https://${p.site}`} target="_blank" rel="noopener noreferrer"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold k-tx-005A36">
               <Compass className="h-3.5 w-3.5" />{p.site}
-            </span>
+            </a>
           </div>
         </article>
       ))}
