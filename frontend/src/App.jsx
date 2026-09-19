@@ -23,9 +23,9 @@ import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
+import { AdminSignIn } from './components/auth/AdminSignIn';
 import { GuestBanner, GuestGate } from './components/auth/GuestGate';
 import { GUEST_LEARNER, GUEST_SESSION } from './data/guestLearner';
-import { DEMO_ADMIN_SESSION, DEMO_APPLICATIONS, DEMO_ANALYTICS } from './data/demoAdmin';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
 import { CareerDetail } from './components/explore/CareerDetail';
@@ -35,6 +35,7 @@ import { useJourney } from './hooks/useJourney';
 import { OfflineCentre } from './components/learner/OfflineCentre';
 import { Dashboard } from './components/learner/Dashboard';
 import { StudentAnalytics } from './components/learner/StudentAnalytics';
+import { EventInvites } from './components/learner/EventInvites';
 import { AcademicCalendar } from './components/calendar/AcademicCalendar';
 import { SubjectChooser } from './components/learner/SubjectChooser';
 import { SubjectEvaluation } from './components/learner/SubjectEvaluation';
@@ -218,27 +219,50 @@ export default function KhethaCareerGuidance() {
   const enterGuest = () => { setRole("student"); setSession(GUEST_SESSION); };
   const leaveGuest = () => setSession(null);
 
-  /* Demo administrator: renders the admin screens from local data so they can
-     be shown without provisioning a real admin. Holds no Supabase session, so
-     every AdminOnly endpoint still refuses it. See data/demoAdmin.js. */
-  const isDemoAdmin = !!session?.demoAdmin;
-  const [demoApplications, setDemoApplications] = useState(DEMO_APPLICATIONS);
-  const enterDemoAdmin = () => {
+  /* Administrators sign in through their own screen (AdminSignIn), against a
+     real Supabase account that must also be an active row in the `admins`
+     table. The old demo-administrator mode that rendered these screens from
+     local fixtures is gone: it could never approve anything, because every
+     admin endpoint refused a caller holding no session, so it demonstrated
+     screens that did not work. */
+  const [adminSignIn, setAdminSignIn] = useState(false);
+  const enterAdmin = (adminSession) => {
+    setAdminSignIn(false);
     setRole("admin");
-    setSession(DEMO_ADMIN_SESSION);
+    setSession(adminSession);
     setTab("approvals");
   };
-  const decideDemoApplication = (id, status) =>
-    setDemoApplications((as) =>
-      as.map((a) => (a.id === id ? { ...a, status, decidedAt: new Date().toISOString() } : a))
-    );
 
   const {
     status: profileStatus, profileError, learner: realLearner,
     subjects: realSubjects, setSubjects: setRealSubjects,
     mathsIsPure: realMathsIsPure, setMathsIsPure: setRealMathsIsPure, createProfile,
-    refetch: refetchProfile, appProfile, saveAppProfile,
+    refetch: refetchProfile, appProfile, saveAppProfile, preferences,
   } = useMatriculantProfile({ enabled: !!session && !isGuest && role === "student" });
+
+  /* Declared preferences are hydrated once, the moment the profile arrives.
+     This is what stops the app re-asking questions the learner has already
+     answered, and what carries language, text size and notification choices
+     from their phone to a school computer. `preferences === undefined` means
+     the profile has not loaded yet; `null` means it loaded and there are none
+     saved, which is a legitimate state to hydrate (it marks the store ready so
+     later edits start persisting). */
+  const prefsSeeded = useRef(false);
+  useEffect(() => {
+    if (isGuest || preferences === undefined || prefsSeeded.current) return;
+    prefsSeeded.current = true;
+    hydrateSettings(preferences);
+    if (preferences?.themeMode) setThemeMode(preferences.themeMode);
+  }, [preferences, isGuest]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keeps the settings store's copy of the theme in step, so a theme change
+  // rides along with the next preferences save rather than needing its own.
+  useEffect(() => { setThemeModeForSync(themeMode); }, [themeMode, setThemeModeForSync]);
+
+  useEffect(() => {
+    if (session) return;
+    prefsSeeded.current = false;
+  }, [session]);
 
   const [guestSubjects, setGuestSubjects] = useState(GUEST_LEARNER.subjects);
   const [guestMathsIsPure, setGuestMathsIsPure] = useState(true);
@@ -285,19 +309,19 @@ export default function KhethaCareerGuidance() {
   const isMentorOrAdmin = !!session && role !== "student";
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
-    useHelpRequests({ enabled: !!session && !isGuest && !isDemoAdmin && (isMentorOrAdmin || hasProfile) });
+    useHelpRequests({ enabled: !!session && !isGuest && (isMentorOrAdmin || hasProfile) });
   const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
-    useMentorApplications({ enabled: !!session && !isGuest && !isDemoAdmin && role === "admin", scope: "admin" });
+    useMentorApplications({ enabled: !!session && !isGuest && role === "admin", scope: "admin" });
   const { applications: myApplications, refetch: refetchMyApplications } =
     useMentorApplications({ enabled: !!session && !isGuest && (role === "mentor" || role === "professional"), scope: "mine" });
   const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } =
-    useNotifications({ enabled: !!session && !isGuest && !isDemoAdmin });
+    useNotifications({ enabled: !!session && !isGuest });
 
   /* Admin screens read these, so demo mode swaps the source without the
      screens themselves knowing anything about it. */
-  const adminApplications = isDemoAdmin ? demoApplications : applications;
-  const approveApp = isDemoAdmin ? (id) => decideDemoApplication(id, "approved") : approveApplication;
-  const rejectApp = isDemoAdmin ? (id) => decideDemoApplication(id, "rejected") : rejectApplication;
+  const adminApplications = applications;
+  const approveApp = approveApplication;
+  const rejectApp = rejectApplication;
   const myApplication = myApplications[0] || null;
 
   /* Deadline/event reminders the learner triggers themselves (favouriting a
@@ -538,17 +562,21 @@ export default function KhethaCareerGuidance() {
         </div>
       )}
 
-      {!pendingRoleIssue && !role && (
+      {!pendingRoleIssue && !role && adminSignIn && (
+        <AdminSignIn onBack={() => setAdminSignIn(false)} onAuthenticated={enterAdmin} />
+      )}
+
+      {!pendingRoleIssue && !role && !adminSignIn && (
         <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
-          onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />
+          onAdmin={() => setAdminSignIn(true)}
+          onPick={(r) => { setRole(r); setTab(r === "student" ? "dashboard" : "workspace"); }} />
       )}
 
       {!pendingRoleIssue && role && !session && (
         <AuthScreen role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
-          onDemoAdmin={enterDemoAdmin}
           onAuthenticated={(s) => resolveAccountRole(role, s)} />
       )}
 
@@ -583,11 +611,12 @@ export default function KhethaCareerGuidance() {
       {session && (!isStudent || hasProfile) && route && renderOverlay()}
 
       {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
-        <AdminApprovals applications={adminApplications} onApprove={approveApp} onReject={rejectApp} />
+        <AdminApprovals applications={adminApplications} onApprove={approveApp} onReject={rejectApp}
+          currentUserId={session?.admin?.userId} />
       )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "analytics" && (
-        <AdminAnalytics data={isDemoAdmin ? DEMO_ANALYTICS : undefined} />
+        <AdminAnalytics />
       )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
@@ -605,6 +634,10 @@ export default function KhethaCareerGuidance() {
       {session && hasProfile && !route && tab === "progress" && (
         <StudentAnalytics t={t} learner={learner} profile={profile} subjects={subjects}
           mathsIsPure={mathsIsPure} aps={aps} journey={journey} go={go} isGuest={isGuest} />
+      )}
+
+      {session && hasProfile && !route && tab === "invites" && (
+        <EventInvites learner={learner} go={go} />
       )}
 
       {session && hasProfile && !route && tab === "calendar" && (

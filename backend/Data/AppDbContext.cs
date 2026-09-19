@@ -28,6 +28,7 @@ public class AppDbContext : DbContext
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<CvDocument> CvDocuments => Set<CvDocument>();
     public DbSet<MentorEvent> MentorEvents => Set<MentorEvent>();
+    public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<MentorEventRegistration> MentorEventRegistrations => Set<MentorEventRegistration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -214,5 +215,11 @@ public class AppDbContext : DbContext
         // role a Supabase user registered under (see AccountController), not just
         // an admin flag — so UserId alone must be unique, not (UserId, Role).
         modelBuilder.Entity<UserRole>().HasKey(r => r.UserId);
+
+        // One admin row per account; the account id IS the key, so a duplicate
+        // grant is a primary-key conflict rather than two disagreeing rows.
+        modelBuilder.Entity<Admin>().HasKey(a => a.UserId);
+        modelBuilder.Entity<Admin>().HasIndex(a => a.IsActive).HasDatabaseName("ix_admins_is_active");
+        modelBuilder.Entity<Admin>().HasIndex(a => a.Email).HasDatabaseName("ix_admins_email");
     }
 }

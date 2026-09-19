@@ -153,6 +153,10 @@ export const getMyMentorApplications = () => apiFetch('/api/mentorapplications/m
 
 export const getPendingMentorApplications = () => apiFetch('/api/mentorapplications/pending');
 
+/** Every application, decided or not — what the admin queue's three tabs need. */
+export const getAllMentorApplications = (status) =>
+  apiFetch(`/api/mentorapplications/all${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+
 export const approveMentorApplication = (id) =>
   apiFetch(`/api/mentorapplications/${id}/approve`, { method: 'POST' });
 
