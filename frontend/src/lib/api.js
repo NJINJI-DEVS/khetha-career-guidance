@@ -82,6 +82,13 @@ export const updateMyProfileData = (profileData) =>
     body: JSON.stringify({ data: profileData ? JSON.stringify(profileData) : null }),
   });
 
+/** Whole-object replace; see MatriculantsController.UpdatePreferences. */
+export const updateMyPreferences = (preferences) =>
+  apiFetch('/api/matriculants/me/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
+  });
+
 export const searchSaqa = (q) =>
   apiFetch(`/api/qualifications/saqa${q ? `?q=${encodeURIComponent(q)}` : ''}`);
 

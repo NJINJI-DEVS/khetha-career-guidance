@@ -42,6 +42,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Matriculant>().HasIndex(m => m.Province).HasDatabaseName("ix_matriculants_province");
         modelBuilder.Entity<Matriculant>().Property(m => m.ProfileData).HasColumnType("jsonb");
 
+        // Mapped with ToJson rather than as a set of flat columns: preferences
+        // are read and written as one whole object, and adding a preference
+        // should not cost a migration and a deploy.
+        modelBuilder.Entity<Matriculant>().OwnsOne(m => m.Preferences, b => b.ToJson());
+
         modelBuilder.Entity<Matriculant>()
             .HasMany(m => m.Subjects)
             .WithOne(s => s.Matriculant)

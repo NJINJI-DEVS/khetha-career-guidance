@@ -79,6 +79,36 @@ public class MatriculantsController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    /// <summary>
+    /// Replaces the learner's declared preferences.
+    ///
+    /// A whole-object PUT rather than a PATCH: the settings screen always holds
+    /// the complete set, and a partial merge would let one stale tab silently
+    /// revert a change made in another.
+    /// </summary>
+    [HttpPut("me/preferences")]
+    public async Task<ActionResult<LearnerPreferences>> UpdatePreferences(
+        [FromBody] LearnerPreferences body, CancellationToken ct)
+    {
+        var profile = await _db.Matriculants.FirstOrDefaultAsync(m => m.UserId == CurrentUserId, ct);
+        if (profile is null) return NotFound();
+
+        // Clamped rather than rejected. A bad value here comes from a client
+        // bug, not a learner, and failing their whole settings save over it
+        // helps nobody — but an unclamped scale can render the app unusable.
+        body.TextScale = Math.Clamp(body.TextScale <= 0 ? 1 : body.TextScale, 0.85, 1.6);
+        if (body.MaxTravelKm is < 0) body.MaxTravelKm = null;
+        if (!Themes.Contains(body.ThemeMode)) body.ThemeMode = "system";
+        body.UpdatedAt = DateTime.UtcNow;
+
+        profile.Preferences = body;
+        await _db.SaveChangesAsync(ct);
+        return Ok(body);
+    }
+
+    private static readonly HashSet<string> Themes = new(StringComparer.OrdinalIgnoreCase)
+        { "system", "light", "dark" };
 }
 
 public record ProfileDataDto(string? Data);

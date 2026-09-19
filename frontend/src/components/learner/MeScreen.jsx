@@ -17,13 +17,17 @@ import { CONSENT_ITEMS } from '../../data/auth';
 import { Pill } from '../ui/Pill';
 import { EmptyState } from '../ui/EmptyState';
 import { SectionTitle } from '../ui/SectionTitle';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { PreferencesForm } from '../settings/PreferencesForm';
+import { useThemeContext } from '../../context/ThemeContext';
 
 /* ==================================================================
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onToggleConsent, consentSaving, consentError }) {
   const [tab, setTab] = useState("journey");
+  const { mode: themeMode, setMode: setThemeMode, theme: resolvedTheme } = useThemeContext();
   const [editorOpen, setEditorOpen] = useState(false);
   const shownName = profile.displayName || session.identity;
   const favCareers = profile.favourites.filter((id) => occById[id]);
@@ -214,6 +218,37 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
                   }`}>{l.native}</button>
               ))}
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Compass className="h-4 w-4" />What you're looking for
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+              Saved to your account, so you are never asked again and these follow you to any device you sign in on.
+              Change them whenever you like.
+            </p>
+            <div className="mt-3">
+              <PreferencesForm value={settings} onChange={(next) => setSettings((s) => ({ ...s, ...next }))} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <SunMoon className="h-4 w-4" />Appearance
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+              System follows whatever your phone is set to, including when it switches to dark on battery saver.
+              Choose Light or Dark to override that.
+            </p>
+            <div className="mt-3">
+              <ThemeToggle mode={themeMode} setMode={setThemeMode} />
+            </div>
+            {themeMode === "system" && (
+              <p className="mt-2 text-[11px] text-slate-600">
+                Currently showing {resolvedTheme === "dark" ? "dark" : "light"}, following your device.
+              </p>
+            )}
           </div>
 
           {/* Preview layout — moved here from a floating bar that covered the
