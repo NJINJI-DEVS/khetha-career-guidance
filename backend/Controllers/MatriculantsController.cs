@@ -1,5 +1,6 @@
 using CareerAdvisor.Api.Data;
 using CareerAdvisor.Api.Models;
+using CareerAdvisor.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,19 @@ public class MatriculantsController : ControllerBase
         input.Id = Guid.NewGuid();
         input.UserId = currentUserId;
         input.CreatedAt = DateTime.UtcNow;
+
+        // Classified server-side from the request header and never trusted from
+        // the body — a client could otherwise poison the department's device mix.
+        // Only the class and OS family are kept; the raw User-Agent is discarded.
+        var device = DeviceClassifier.Classify(Request.Headers.UserAgent.ToString());
+        input.SignupDeviceType = device.DeviceType;
+        input.SignupPlatform = device.Platform;
+
+        // Onboarding may send preferences alongside the profile. Stamping the
+        // time here is what later tells the app these were captured, so it
+        // never asks for them a second time.
+        if (input.Preferences is not null) input.Preferences.UpdatedAt = DateTime.UtcNow;
+
         foreach (var s in input.Subjects) { s.Id = Guid.NewGuid(); s.MatriculantId = input.Id; }
 
         _db.Matriculants.Add(input);
