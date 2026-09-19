@@ -63,19 +63,9 @@ export function MobileShell({
         </div>
         <ColourRule />
 
-        <div className="relative min-h-0 flex-1">
-          <main ref={scrollRef} className="h-full overflow-y-auto" style={{ zoom: textScale }}>
-            <div className={layout === "tablet" ? "mx-auto w-full max-w-2xl" : ""}>{body}</div>
-          </main>
-
-          {session && !(tab === "advisor" && !route) && (
-            <button onClick={() => { setTab("advisor"); setRoute(null); }}
-              aria-label="Chat with the Khetha advisor"
-              className="absolute bottom-3 left-3 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 text-base font-bold k-tx-0F172A shadow-lg ring-2 ring-white">
-              K
-            </button>
-          )}
-        </div>
+        <main ref={scrollRef} className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
+          <div className={layout === "tablet" ? "mx-auto w-full max-w-2xl" : ""}>{body}</div>
+        </main>
 
         {showNextStep && <NextStepBar t={t} journey={journey} go={go} onDismiss={onDismissNextBar} />}
 
