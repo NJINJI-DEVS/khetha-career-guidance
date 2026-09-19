@@ -25,7 +25,7 @@ import { useThemeContext } from '../../context/ThemeContext';
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onToggleConsent, consentSaving, consentError, onExportData, onDeleteResults }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults, onToggleConsent, consentSaving, consentError }) {
   const [tab, setTab] = useState("journey");
   const { mode: themeMode, setMode: setThemeMode, theme: resolvedTheme } = useThemeContext();
   const [editorOpen, setEditorOpen] = useState(false);

@@ -11,7 +11,7 @@ export async function apiFetch(path, options = {}) {
   const { data: { session } } = await supabase.auth.getSession();
 
   const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
+  if (!(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   if (session?.access_token) {
     headers.set('Authorization', `Bearer ${session.access_token}`);
   }
@@ -19,15 +19,17 @@ export async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    const err = new Error(`API error ${res.status}: ${text}`);
+    let body;
+    try { body = text ? JSON.parse(text) : null; } catch { body = null; }
+    const err = new Error(body?.error || body?.message || `Request failed (${res.status}). Please try again.`);
     err.status = res.status;
-    try { err.body = text ? JSON.parse(text) : null; } catch { err.body = null; }
+    err.body = body;
     throw err;
   }
 
   // Some endpoints (e.g. PUT .../subjects) return 204 No Content.
   if (res.status === 204) return null;
-  return res.json();
+  return options.responseType === 'blob' ? res.blob() : res.json();
 }
 
 // --- Convenience wrappers matching the current backend's actual endpoints ---
@@ -35,6 +37,7 @@ export async function apiFetch(path, options = {}) {
 // --- Account role (binds a Supabase account to one role, permanently) ---
 
 export const getMyAccountRole = () => apiFetch('/api/account/role');
+export const getMyAdminAccount = () => apiFetch('/api/admin/me');
 
 export const claimAccountRole = (role) =>
   apiFetch('/api/account/role', { method: 'POST', body: JSON.stringify({ role }) });
@@ -53,6 +56,13 @@ export const askAdvisor = (message, language) =>
     method: 'POST',
     body: JSON.stringify({ message, language }),
   });
+
+/** Consent already on file. Throws with status 404 when there is none, or when
+ *  what is on file predates the current consent wording. */
+export const getMyConsent = () => apiFetch('/api/account/consent');
+
+export const saveMyConsent = (consent) =>
+  apiFetch('/api/account/consent', { method: 'POST', body: JSON.stringify(consent) });
 
 export const calculateAps = (subjects) =>
   apiFetch('/api/aps/calculate', {
@@ -106,6 +116,13 @@ export const updateMyPreferences = (preferences) =>
 
 export const deleteMyProfileData = () =>
   apiFetch('/api/matriculants/me/profile-data', { method: 'DELETE' });
+
+/** Whole-object replace; see MatriculantsController.UpdatePreferences. */
+export const updateMyPreferences = (preferences) =>
+  apiFetch('/api/matriculants/me/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
+  });
 
 export const searchSaqa = (q) =>
   apiFetch(`/api/qualifications/saqa${q ? `?q=${encodeURIComponent(q)}` : ''}`);
@@ -206,8 +223,18 @@ export const listMentors = ({ field, province, q } = {}) => {
   return apiFetch(`/api/mentors${qs ? `?${qs}` : ''}`);
 };
 
-export const submitMentorApplication = (application) =>
-  apiFetch('/api/mentorapplications', { method: 'POST', body: JSON.stringify(application) });
+export const submitMentorApplication = (application, idDocument, transcript) => {
+  const body = new FormData();
+  body.append('application', JSON.stringify(application));
+  body.append('idDocument', idDocument);
+  if (transcript) body.append('transcript', transcript);
+  return apiFetch('/api/mentorapplications', { method: 'POST', body });
+};
+
+export const downloadApplicationDocument = (id, kind) =>
+  apiFetch(`/api/mentorapplications/${id}/documents/${kind}`, { responseType: 'blob' });
+
+export const getAdminMentorApplications = () => apiFetch('/api/mentorapplications');
 
 export const getMyMentorApplications = () => apiFetch('/api/mentorapplications/me');
 

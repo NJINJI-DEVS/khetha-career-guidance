@@ -11,11 +11,14 @@ import { MentorEvents } from './MentorEvents';
 import { EventRegister } from './EventRegister';
 import { RecommendationLetterModal } from './RecommendationLetterModal';
 
-export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, onVerify, application }) {
+export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, onVerify, application, loading, error, onRefresh }) {
   const [letterFor, setLetterFor] = useState(null);
   const [filter, setFilter] = useState("pending");
   const [actingOn, setActingOn] = useState(null);
   const [registerFor, setRegisterFor] = useState(null);
+
+  if (loading) return <p className="p-6 text-sm text-slate-600">Checking your application…</p>;
+  if (error) return <div className="space-y-3 p-6"><p role="alert" className="text-sm text-red-700">Couldn't check your application status.</p><button onClick={onRefresh} className="rounded-lg border p-2">Retry</button></div>;
 
   const verified = application?.status === "approved";
   const counts = {
@@ -38,6 +41,7 @@ export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, o
   return (
     <div className="space-y-4 p-4 pb-6">
       <VerificationBanner session={session} onVerify={onVerify} application={application} />
+      <button onClick={onRefresh} className="text-xs font-semibold k-tx-005A36">Refresh application status</button>
 
       <div className="grid grid-cols-3 gap-2.5">
         {[

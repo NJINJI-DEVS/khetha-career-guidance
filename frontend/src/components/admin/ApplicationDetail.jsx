@@ -11,6 +11,7 @@ import { checkSaId } from '../../engines/saId';
 import { Screen } from '../ui/Screen';
 import { Pill } from '../ui/Pill';
 import { SectionTitle } from '../ui/SectionTitle';
+import { downloadApplicationDocument } from '../../lib/api';
 
 /* ---- Application detail ------------------------------------------- */
 export function ApplicationDetail({ app, onBack, onApprove, onReject }) {
@@ -19,6 +20,16 @@ export function ApplicationDetail({ app, onBack, onApprove, onReject }) {
   const [error, setError] = useState("");
   const v = VERDICT_STYLE[app.riskVerdict] || VERDICT_STYLE.clear;
   const flags = app.riskFlags || [];
+  const download = async (kind, filename) => {
+    setError('');
+    try {
+      const blob = await downloadApplicationDocument(app.id, kind);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = filename; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { setError('The document could not be downloaded. Older applications may need to be resubmitted.'); }
+  };
 
   const rows = [
     ["Full name", app.fullName],
@@ -80,6 +91,11 @@ export function ApplicationDetail({ app, onBack, onApprove, onReject }) {
       )}
 
       <SectionTitle>What they submitted</SectionTitle>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {app.idDocumentFilename && <button onClick={() => download('identity', app.idDocumentFilename)} className="rounded-lg border p-2 text-xs">Download ID document</button>}
+        {app.transcriptFilename && <button onClick={() => download('transcript', app.transcriptFilename)} className="rounded-lg border p-2 text-xs">Download transcript</button>}
+      </div>
+      {error && <p role="alert" className="my-3 text-xs text-red-700">{error}</p>}
       <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {rows.map(([k, val]) => (
           <div key={k} className="flex items-start gap-3 p-3">
@@ -96,7 +112,6 @@ export function ApplicationDetail({ app, onBack, onApprove, onReject }) {
 
       {app.status === "pending" ? (
         <>
-          {error && <p className="mt-3 text-xs k-tx-9B1C14">{error}</p>}
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <button disabled={busy} onClick={() => act(() => onApprove())}
               className="rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">Approve</button>

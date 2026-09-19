@@ -15,14 +15,14 @@ import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { useHelpRequests } from './hooks/useHelpRequests';
 import { useMentorApplications } from './hooks/useMentorApplications';
 import { useNotifications } from './hooks/useNotifications';
-import { submitMentorApplication, getMyAccountRole, claimAccountRole, saveMyConsent,
-  getMyMatriculantProfile, deleteMyProfileData } from './lib/api';
+import { submitMentorApplication, getMyAccountRole, claimAccountRole, getMyMatriculantProfile, deleteMyProfileData, saveMyConsent } from './lib/api';
 import { signOut } from './services/authService';
 import { Screen } from './components/ui/Screen';
 import { HorizontalScroller } from './components/ui/HorizontalScroller';
 import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { AdminLogin } from './components/auth/AdminLogin';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
 import { AdminSignIn } from './components/auth/AdminSignIn';
 import { GuestBanner, GuestGate } from './components/auth/GuestGate';
@@ -178,6 +178,7 @@ export default function KhethaCareerGuidance() {
         accountRole = (await getMyAccountRole()).role;
       } catch (err) {
         if (err.status !== 404) throw err;
+        if (pickedRole === 'admin') throw new Error('Administrator accounts must be provisioned by the platform operator.');
         try {
           accountRole = (await claimAccountRole(pickedRole)).role;
         } catch (claimErr) {
@@ -191,7 +192,9 @@ export default function KhethaCareerGuidance() {
       }
       setPendingRoleIssue(null);
       setSession({ ...authPayload, role: pickedRole });
-      if (ROLES[pickedRole].verifies) setVerifying(true);
+      setRole(accountRole);
+      setTab(accountRole === 'admin' ? 'approvals' : accountRole === 'student' ? 'dashboard' : 'workspace');
+      setRoute(null);
     } catch (err) {
       setPendingRoleIssue({ kind: 'error', message: err.message, pendingAuth: authPayload });
     }
@@ -201,7 +204,8 @@ export default function KhethaCareerGuidance() {
     setPendingRoleIssue(null);
     setRole(actual);
     setSession({ ...pendingAuth, role: actual });
-    if (ROLES[actual].verifies) setVerifying(true);
+    setTab(actual === 'admin' ? 'approvals' : actual === 'student' ? 'dashboard' : 'workspace');
+    setRoute(null);
   };
   const abandonRoleIssue = async () => {
     await signOut();
@@ -340,9 +344,9 @@ export default function KhethaCareerGuidance() {
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
     useHelpRequests({ enabled: !!session && !isGuest && (isMentorOrAdmin || hasProfile) });
-  const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
+  const { applications, loading: applicationsLoading, error: applicationsError, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
     useMentorApplications({ enabled: !!session && !isGuest && role === "admin", scope: "admin" });
-  const { applications: myApplications, refetch: refetchMyApplications } =
+  const { applications: myApplications, loading: myApplicationsLoading, error: myApplicationsError, refetch: refetchMyApplications } =
     useMentorApplications({ enabled: !!session && !isGuest && (role === "mentor" || role === "professional"), scope: "mine" });
   const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } =
     useNotifications({ enabled: !!session && !isGuest });
@@ -353,6 +357,13 @@ export default function KhethaCareerGuidance() {
   const approveApp = approveApplication;
   const rejectApp = rejectApplication;
   const myApplication = myApplications[0] || null;
+  const promptedForApplication = useRef(false);
+  useEffect(() => {
+    if (!session) { promptedForApplication.current = false; return; }
+    if (!['mentor', 'professional'].includes(role) || myApplicationsLoading || myApplicationsError || promptedForApplication.current) return;
+    promptedForApplication.current = true;
+    if (!myApplication) setVerifying(true);
+  }, [session, role, myApplicationsLoading, myApplicationsError, myApplication, setVerifying]);
 
   /* Deadline/event reminders the learner triggers themselves (favouriting a
      qualification, tapping "remind me" on an event) have no backend endpoint
@@ -627,8 +638,11 @@ export default function KhethaCareerGuidance() {
           onPick={(r) => { setRole(r); setTab(r === "student" ? "dashboard" : "workspace"); }} />
       )}
 
-      {!pendingRoleIssue && role && !session && (
-        <AuthScreen role={role} onBack={() => setRole(null)}
+      {!pendingRoleIssue && role === 'admin' && !session && (
+        <AdminLogin onBack={() => setRole(null)} onAuthenticated={(s) => resolveAccountRole('admin', s)} />
+      )}
+      {!pendingRoleIssue && role && role !== 'admin' && !session && (
+        <AuthScreen key={role} role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
           onAuthenticated={(s) => resolveAccountRole(role, s)} />
@@ -667,15 +681,17 @@ export default function KhethaCareerGuidance() {
 
       {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
         <AdminApprovals applications={adminApplications} onApprove={approveApp} onReject={rejectApp}
-          currentUserId={session?.admin?.userId} />
+          currentUserId={session?.admin?.userId}
+          loading={applicationsLoading} error={applicationsError} onRefresh={refetchApplications} />
       )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "analytics" && (
         <AdminAnalytics />
       )}
 
-      {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
+      {session && ['mentor', 'professional'].includes(role) && !route && tab === "workspace" && (
         <MentorWorkspace session={session} requests={requests} onRespond={respondToHelpRequest}
+          loading={myApplicationsLoading} error={myApplicationsError} onRefresh={refetchMyApplications}
           onIssueLetter={issueLetter} application={myApplication} onVerify={() => setVerifying(true)} />
       )}
 
@@ -782,7 +798,7 @@ export default function KhethaCareerGuidance() {
 
   const modals = session && (
     <>
-      {verifying && (
+      {verifying && ['mentor', 'professional'].includes(role) && !myApplicationsLoading && !myApplicationsError && (!myApplication || myApplication.status === 'rejected') && (
         <VerificationFlow role={role}
           onCancel={() => setVerifying(false)}
           onComplete={async (v) => {
@@ -790,7 +806,6 @@ export default function KhethaCareerGuidance() {
               role,
               fullName: v.fullName,
               idNumber: v.idNumber,
-              idDocumentFilename: v.idDoc,
               workEmail: v.workEmail,
               institution: v.institution || "",
               linkedIn: v.linkedin,
@@ -799,14 +814,12 @@ export default function KhethaCareerGuidance() {
               claimsTeacher: false,
               partnerCode: v.partnerCode,
               partnerName: v.partnerName,
-              transcriptFilename: v.transcript,
-              field: "",
-              subjects: [],
-              claim: "Submitted through the in-app verification flow.",
+              field: v.field,
+              subjects: v.subjects.split(',').map((s) => s.trim()).filter(Boolean),
+              claim: v.claim,
               submitSeconds: v.submitSeconds,
-            });
+            }, v.idDoc, v.transcript);
             await refetchMyApplications();
-            setSession((s) => ({ ...s, verification: v }));
             setVerifying(false);
           }} />
       )}

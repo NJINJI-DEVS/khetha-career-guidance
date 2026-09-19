@@ -9,7 +9,8 @@ import { ModalShell } from '../ui/ModalShell';
 import { Progress } from '../ui/Progress';
 import { TierBadges } from '../ui/TierBadges';
 import { Pill } from '../ui/Pill';
-import { FileDrop } from './FileDrop';
+import { DocumentPicker as FileDrop } from './DocumentPicker';
+import { FIELDS } from '../../data/fields';
 
 /* ---- Multi-step verification -------------------------------------- */
 export function VerificationFlow({ role, onComplete, onCancel }) {
@@ -17,7 +18,7 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
   const [f, setF] = useState({
     fullName: "", idNumber: "", idDoc: null,
     workEmail: "", linkedin: "", licenceBody: "none", licenceNumber: "",
-    partnerCode: "", transcript: null,
+    partnerCode: "", transcript: null, institution: '', field: 'stem', subjects: '', claim: '',
   });
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const startedAt = useRef(Date.now());
@@ -35,10 +36,9 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
   const tiers = [
     idOk ? "id" : null,
     f.transcript && (academicEmail || f.licenceNumber.trim()) ? "degree" : null,
-    partnerName ? "ngo" : null,
   ].filter(Boolean);
 
-  const credOk = corporateEmail || partnerName || !!f.transcript;
+  const credOk = (corporateEmail || !!f.transcript) && f.institution.trim() && f.subjects.trim() && f.claim.trim();
 
   const titles = { 1: "Personal identity", 2: "Professional credentials", 3: "Review and submit" };
 
@@ -57,8 +57,7 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
       {step === 1 && (
         <div className="space-y-3">
           <p className="text-xs leading-relaxed text-slate-600">
-            We check identity before anything else, because these accounts contact minors. Documents are encrypted
-            and visible only to the DHET verification team.
+            Supply your identity document for an administrator to review. Your profile stays private until your application is approved.
           </p>
           <div>
             <label htmlFor="v-name" className="text-xs font-medium text-slate-700">Full name, as it appears on your ID</label>
@@ -70,7 +69,7 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
             <input id="v-id" value={f.idNumber} onChange={(e) => set("idNumber", e.target.value)}
               placeholder="13 digits, or a passport number" className={input} />
             <p className="mt-1 text-[10px] text-slate-600">
-              Stored encrypted, never shown to learners, and used only to confirm you are who you say you are.
+              Used for identity review and never included in your public mentor profile.
             </p>
           </div>
           <FileDrop label="ID document photo" hint="Both sides if it is a card."
@@ -83,9 +82,12 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
 
       {step === 2 && (
         <div className="space-y-3">
+          <label className="block text-xs font-medium">Institution or employer<input value={f.institution} onChange={(e) => set('institution', e.target.value)} className={input} maxLength={200} /></label>
+          <label className="block text-xs font-medium">Career field<select value={f.field} onChange={(e) => set('field', e.target.value)} className={input}>{FIELDS.map((field) => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label>
+          <label className="block text-xs font-medium">Subjects you can tutor<input value={f.subjects} onChange={(e) => set('subjects', e.target.value)} placeholder="Mathematics, Physical Sciences" className={input} maxLength={500} /></label>
+          <label className="block text-xs font-medium">Your experience and how you can help<textarea value={f.claim} onChange={(e) => set('claim', e.target.value)} className={input} maxLength={3000} rows={3} /></label>
           <p className="text-xs leading-relaxed text-slate-600">
-            Any one of these is enough to proceed. The more you provide, the higher the verification tier on your
-            profile, and learners filter on that.
+            Provide a work email or transcript along with your tutoring details. An administrator will review the evidence before approving your account.
           </p>
           <div>
             <label htmlFor="v-email" className="text-xs font-medium text-slate-700">Work or academic email</label>
@@ -93,7 +95,7 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
               placeholder="l.mokoena@wits.ac.za" className={input} />
             {f.workEmail && (
               <p className={`mt-1 text-[10px] ${academicEmail || corporateEmail ? "k-tx-005A36" : "k-tx-9B1C14"}`}>
-                {academicEmail ? "Academic domain recognised — counts toward Degree Verified."
+                {academicEmail ? "Academic domain recognised — subject to administrator review."
                   : corporateEmail ? "Corporate domain recognised."
                   : "Free email providers cannot be used for verification."}
               </p>
@@ -120,8 +122,8 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
             <input id="v-code" value={f.partnerCode} onChange={(e) => set("partnerCode", e.target.value.toUpperCase())}
               placeholder="IKAMVA-2027" className={input} />
             <p className={`mt-1 text-[10px] ${partnerName ? "k-tx-005A36" : "text-slate-600"}`}>
-              {partnerName ? `Code recognised — vetted by ${partnerName}.`
-                : "Issued by your coordinator. Earns the NGO Vetted badge."}
+              {partnerName ? `Claimed partner: ${partnerName}. An administrator must confirm this separately.`
+                : "Optional coordinator reference. A code alone does not verify your credentials."}
             </p>
           </div>
           <FileDrop label="Academic transcript or degree certificate" hint="Highest qualification is enough."
@@ -137,12 +139,12 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
               {[
                 ["Name", f.fullName || "—"],
                 ["ID / passport", f.idNumber ? `••••••${f.idNumber.slice(-4)}` : "—"],
-                ["ID document", f.idDoc || "—"],
+                ["ID document", f.idDoc?.name || "—"],
                 ["Work email", f.workEmail || "—"],
                 ["LinkedIn", f.linkedin || "—"],
                 ["Registration", f.licenceNumber || "—"],
                 ["Partner code", partnerName ? `${f.partnerCode} (${partnerName})` : "—"],
-                ["Transcript", f.transcript || "—"],
+                ["Transcript", f.transcript?.name || "—"],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-3">
                   <span className="text-slate-600">{k}</span>
@@ -153,8 +155,8 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
           </div>
 
           <div className="rounded-xl border k-bd-D4AF37 k-bg-FBF5E7 p-3">
-            <p className="text-[11px] font-semibold k-tx-6B5307">Badges you will receive</p>
-            <div className="mt-2 flex flex-wrap gap-1.5"><TierBadges tiers={tiers} /></div>
+            <p className="text-[11px] font-semibold k-tx-6B5307">Evidence awaiting administrator review</p>
+            <p className="mt-2 text-xs k-tx-6B5307">Identity document{f.transcript ? ' and academic transcript' : ''} supplied. Verification badges are awarded only after approval.</p>
             {tiers.length === 0 && (
               <p className="mt-2 text-[11px] k-tx-6B5307">
                 Nothing qualifies yet. Go back and add an ID document, a transcript, or a partner access code.
@@ -163,8 +165,7 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
           </div>
 
           <p className="text-[11px] leading-relaxed text-slate-600">
-            Your account is live immediately with the badges shown, and learners see exactly which checks passed.
-            Manual review by the DHET team follows within five working days and can revoke a badge.
+            After submission, your application will show as awaiting approval. You will only appear in the mentor directory and receive learner requests once an administrator approves it.
           </p>
         </div>
       )}
@@ -201,7 +202,7 @@ export function VerificationFlow({ role, onComplete, onCancel }) {
       </div>
       {step === 2 && !credOk && (
         <p className="mt-2 text-center text-[11px] text-slate-600">
-          Add a work email, a partner code, or a transcript to continue.
+          Complete your institution, subjects and experience, and add a work email or transcript to continue.
         </p>
       )}
     </ModalShell>
