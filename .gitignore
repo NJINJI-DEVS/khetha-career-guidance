@@ -23,6 +23,7 @@ pnpm-debug.log*
 .pnpm-store/
 
 ### .NET / backend ###
+App_Data/
 bin/
 obj/
 *.user

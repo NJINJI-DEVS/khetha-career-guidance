@@ -4,6 +4,8 @@ using CareerAdvisor.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace CareerAdvisor.Api.Controllers;
 
@@ -14,10 +16,12 @@ public class MentorApplicationsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IRiskFlagsService _riskFlags;
-    public MentorApplicationsController(AppDbContext db, IRiskFlagsService riskFlags)
+    private readonly ApplicationDocuments _documents;
+    public MentorApplicationsController(AppDbContext db, IRiskFlagsService riskFlags, ApplicationDocuments documents)
     {
         _db = db;
         _riskFlags = riskFlags;
+        _documents = documents;
     }
 
     private Guid CurrentUserId =>
@@ -26,8 +30,40 @@ public class MentorApplicationsController : ControllerBase
     /// <summary>Submit a mentor/professional application. Risk score is computed
     /// server-side and stored — never accepted from the client.</summary>
     [HttpPost]
-    public async Task<ActionResult<MentorApplication>> Submit([FromBody] MentorApplication input, CancellationToken ct)
+    [RequestSizeLimit(11 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 11 * 1024 * 1024)]
+    public async Task<ActionResult<MentorApplication>> Submit([FromForm] string application, IFormFile idDocument, IFormFile? transcript, CancellationToken ct)
     {
+        MentorApplication? input;
+        try { input = JsonSerializer.Deserialize<MentorApplication>(application, new JsonSerializerOptions(JsonSerializerDefaults.Web)); }
+        catch (JsonException) { return BadRequest(new { error = "Invalid application." }); }
+        if (input is null) return BadRequest(new { error = "Application is required." });
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        // Lock the account to serialize concurrent submissions for the same user.
+        var account = await _db.UserRoles.FromSqlInterpolated($"SELECT * FROM user_roles WHERE user_id = {CurrentUserId} FOR UPDATE").SingleOrDefaultAsync(ct);
+        if (account is null || (account.Role != "mentor" && account.Role != "professional")) return Forbid();
+        if (await _db.MentorApplications.AnyAsync(a => a.UserId == CurrentUserId && (a.Status == "pending" || a.Status == "approved"), ct))
+            return Conflict(new { error = "You already have a pending or approved application." });
+        if (string.IsNullOrWhiteSpace(input.FullName) || input.FullName.Length > 200 ||
+            string.IsNullOrWhiteSpace(input.IdNumber) || !Regex.IsMatch(input.IdNumber, @"^(\d{13}|[A-Za-z0-9]{6,12})$") ||
+            string.IsNullOrWhiteSpace(input.Institution) || input.Institution.Length > 200 ||
+            !new[] { "stem", "business", "health", "trades", "social", "creative" }.Contains(input.Field) ||
+            input.Subjects is null || input.Subjects.Length == 0 || input.Subjects.Length > 30 || input.Subjects.Any(s => string.IsNullOrWhiteSpace(s) || s.Length > 100) ||
+            string.IsNullOrWhiteSpace(input.Claim) || input.Claim.Length > 3000 ||
+            (string.IsNullOrWhiteSpace(input.WorkEmail) && transcript is null))
+            return BadRequest(new { error = "Provide your name, ID/passport, institution, field, subjects, experience and work email or transcript." });
+        byte[] identityBytes;
+        byte[]? transcriptBytes;
+        try {
+            identityBytes = await ApplicationDocuments.ReadValidated(idDocument, ct);
+            transcriptBytes = transcript is null ? null : await ApplicationDocuments.ReadValidated(transcript, ct);
+        } catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
+        input.Role = account.Role;
+        input.IdDocumentFilename = Path.GetFileName(idDocument.FileName);
+        input.TranscriptFilename = transcript is null ? null : Path.GetFileName(transcript.FileName);
+        input.PartnerName = null; // A submitted code is not evidence of NGO vetting.
+        input.DuplicateOf = null;
+        input.SubjectMismatch = null;
         input.Id = Guid.NewGuid();
         input.UserId = CurrentUserId;
         input.Status = "pending";
@@ -41,7 +77,14 @@ public class MentorApplicationsController : ControllerBase
         input.RiskVerdict = verdict;
 
         _db.MentorApplications.Add(input);
-        await _db.SaveChangesAsync(ct);
+        try {
+            await _documents.Save(input.Id, identityBytes, transcriptBytes, ct);
+            await _db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        } catch {
+            _documents.RemoveUncommitted(input.Id);
+            throw;
+        }
         return CreatedAtAction(nameof(GetMine), new { }, input);
     }
 
@@ -90,13 +133,33 @@ public class MentorApplicationsController : ControllerBase
             .ToListAsync(ct));
     }
 
+    [HttpGet("{id}/documents/{kind}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> DownloadDocument(Guid id, string kind, CancellationToken ct)
+    {
+        if (kind != "identity" && kind != "transcript") return NotFound();
+        var application = await _db.MentorApplications.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (application is null) return NotFound();
+        var filename = kind == "identity" ? application.IdDocumentFilename : application.TranscriptFilename;
+        var path = _documents.DocumentPath(id, kind);
+        if (filename is null || !System.IO.File.Exists(path)) return NotFound(new { error = "No document is stored for this application." });
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return PhysicalFile(path, "application/octet-stream", filename);
+    }
+
     [HttpPost("{id}/approve")]
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult<Mentor>> Approve(Guid id, CancellationToken ct)
     {
-        var app = await _db.MentorApplications.FirstOrDefaultAsync(a => a.Id == id, ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        var app = await _db.MentorApplications.FromSqlInterpolated($"SELECT * FROM mentor_applications WHERE id = {id} FOR UPDATE").SingleOrDefaultAsync(ct);
         if (app is null) return NotFound();
         if (app.Status != "pending") return Conflict(new { error = "Application has already been decided." });
+        if (!_documents.HasIdentity(app.Id)) return BadRequest(new { error = "The identity document is missing. Reject this application and ask the applicant to resubmit with a document." });
+        if (await _db.Mentors.AnyAsync(m => m.UserId == app.UserId, ct)) return Conflict(new { error = "This account already has a mentor profile." });
+        if (!await _db.UserRoles.AnyAsync(r => r.UserId == app.UserId && r.Role == app.Role && (r.Role == "mentor" || r.Role == "professional"), ct))
+            return BadRequest(new { error = "The applicant no longer has a mentor or professional account." });
 
         app.Status = "approved";
         app.DecidedAt = DateTime.UtcNow;
@@ -112,6 +175,7 @@ public class MentorApplicationsController : ControllerBase
             Subjects = app.Subjects,
             InstitutionOrEmployer = app.Institution,
             WorkEmail = app.WorkEmail,
+            Bio = app.Claim,
             VerificationTiers = BuildVerificationTiers(app),
             SourceApplicationId = app.Id,
             IsActive = true,
@@ -136,6 +200,7 @@ public class MentorApplicationsController : ControllerBase
         });
 
         await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return Ok(mentor);
     }
 
@@ -143,7 +208,8 @@ public class MentorApplicationsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult> Reject(Guid id, CancellationToken ct)
     {
-        var app = await _db.MentorApplications.FirstOrDefaultAsync(a => a.Id == id, ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        var app = await _db.MentorApplications.FromSqlInterpolated($"SELECT * FROM mentor_applications WHERE id = {id} FOR UPDATE").SingleOrDefaultAsync(ct);
         if (app is null) return NotFound();
         if (app.Status != "pending") return Conflict(new { error = "Application has already been decided." });
 
@@ -168,6 +234,7 @@ public class MentorApplicationsController : ControllerBase
         });
 
         await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return NoContent();
     }
 

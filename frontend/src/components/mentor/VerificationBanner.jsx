@@ -9,8 +9,12 @@ import { TierBadges } from '../ui/TierBadges';
    ================================================================== */
 
 export function VerificationBanner({ session, onVerify, application }) {
-  const tiers = session.verification?.tiers || [];
-  const status = application?.status || (tiers.length ? "pending" : "none");
+  const tiers = application?.status === 'approved' ? [
+    application.idDocumentFilename && 'id',
+    (application.transcriptFilename || application.licenceNumber) && 'degree',
+    application.partnerName && 'ngo',
+  ].filter(Boolean) : [];
+  const status = application?.status || 'none';
   const verified = status === "approved";
   return (
     <div className={`rounded-2xl border p-4 ${verified ? "k-bd-00784A k-bg-E7F4EE" : "k-bd-D4AF37 k-bg-FBF5E7"}`}>
@@ -35,7 +39,7 @@ export function VerificationBanner({ session, onVerify, application }) {
                   ? (application?.note || "The verification team needs more from you before they can decide. Check your email for the detail.")
               : status === "pending"
                 ? "A person on the DHET verification team reviews every application. Until they approve it, your profile is hidden from the directory and you cannot receive learner requests."
-                : "Until at least one check passes, your profile is hidden from the mentor directory and you cannot receive requests."}
+                : "Complete your application for administrator review. Your profile stays hidden until approval."}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-1.5"><TierBadges tiers={tiers} /></div>
           {!verified && status !== "pending" && (

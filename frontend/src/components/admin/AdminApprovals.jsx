@@ -23,12 +23,15 @@ import { VettingGuide } from './VettingGuide';
    ================================================================== */
 
 /* ---- Queue --------------------------------------------------------- */
-export function AdminApprovals({ applications, onApprove, onReject, currentUserId }) {
+export function AdminApprovals({ applications, onApprove, onReject, loading, error, onRefresh, currentUserId }) {
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("pending");
   // Two queues share this screen because the admin navigation has no free slot,
   // and because they are the same job: deciding what reaches a learner.
   const [section, setSection] = useState("applications");
+
+  if (loading) return <p className="p-6 text-sm text-slate-600">Loading applications…</p>;
+  if (error) return <div className="space-y-3 p-6"><p role="alert" className="text-sm text-red-700">Couldn't load applications. {error.status === 403 ? 'Administrator access is required.' : 'Please try again.'}</p><button onClick={onRefresh} className="rounded-lg border p-2">Retry</button></div>;
 
   const open = applications.find((a) => a.id === openId);
   if (open) {
@@ -54,6 +57,8 @@ export function AdminApprovals({ applications, onApprove, onReject, currentUserI
 
   return (
     <div className="space-y-4 p-4 pb-6">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold text-slate-900">Administrator dashboard</h2><button onClick={onRefresh} className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold">Refresh</button></div>
+
       <div className="grid grid-cols-3 gap-2" data-testid="admin-queue-tabs">
         {tabs.map((t) => {
           const Icon = t.icon;

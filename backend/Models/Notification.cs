@@ -28,9 +28,8 @@ public class AuditLog
 }
 
 /// <summary>
-/// Server-side role assignment (e.g. "admin"). The frontend's `role` state is pure
-/// UI navigation with no enforcement — this table is the real authorization source
-/// for anything gated by [Authorize(Policy = "AdminOnly")].
+/// Public account role assignment (student, mentor or professional).
+/// Administrator access is stored separately in Admin.
 /// </summary>
 public class UserRole
 {

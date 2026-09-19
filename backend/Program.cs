@@ -72,6 +72,7 @@ builder.Services.AddScoped<ISaIdService, SaIdService>();
 builder.Services.AddScoped<IRiskFlagsService, RiskFlagsService>();
 builder.Services.AddScoped<IRedactionService, RedactionService>();
 builder.Services.AddScoped<ISmsSummaryService, SmsSummaryService>();
+builder.Services.AddSingleton<ApplicationDocuments>();
 
 // ---- CORS for the React PWA -------------------------------------------------
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -88,6 +89,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+if (builder.Configuration["provision-admin"] is string adminEmail)
+{
+    try { await AdminProvisioning.Run(app.Services, builder.Configuration, adminEmail); }
+    catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -110,3 +118,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
