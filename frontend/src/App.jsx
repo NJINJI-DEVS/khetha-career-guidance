@@ -160,7 +160,7 @@ export default function KhethaCareerGuidance() {
   const { settings, setSettings, t, hydrate: hydrateSettings, setThemeModeForSync } = useSettings();
   const { mode: themeMode, setMode: setThemeMode } = useThemeContext();
   const {
-    role, setRole, session, setSession, verifying, setVerifying,
+    role, setRole, session, setSession, verifying, setVerifying, authLoading,
   } = useAuth();
 
   /* An account is bound to one real role forever, the first time it's ever
@@ -400,6 +400,19 @@ export default function KhethaCareerGuidance() {
     go, NAV, SECONDARY, isStudent, exploreTabs,
   } = useAppNavigation({ role, t, onSms: () => setSmsOpen(true) });
 
+  /* `tab` defaults to "dashboard", which only exists in the student nav — a
+     session restored on refresh (see AuthContext) needs the same per-role
+     landing tab that a fresh login already gets via resolveAccountRole/
+     enterAdmin. Fires exactly once, right when the restoration attempt
+     resolves either way. */
+  useEffect(() => {
+    if (authLoading) return;
+    if (session && role) {
+      setTab(role === "admin" ? "approvals" : role === "student" ? "dashboard" : "workspace");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
   /* ---- responsive detection, connectivity and install prompt ------- */
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return undefined;
@@ -627,11 +640,15 @@ export default function KhethaCareerGuidance() {
         </div>
       )}
 
-      {!pendingRoleIssue && !role && adminSignIn && (
+      {authLoading && !role && (
+        <div className="flex min-h-full items-center justify-center p-8 text-sm text-slate-600">Checking your session…</div>
+      )}
+
+      {!authLoading && !pendingRoleIssue && !role && adminSignIn && (
         <AdminSignIn onBack={() => setAdminSignIn(false)} onAuthenticated={enterAdmin} />
       )}
 
-      {!pendingRoleIssue && !role && !adminSignIn && (
+      {!authLoading && !pendingRoleIssue && !role && !adminSignIn && (
         <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
           onAdmin={() => setAdminSignIn(true)}
