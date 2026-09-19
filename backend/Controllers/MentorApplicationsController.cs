@@ -66,6 +66,30 @@ public class MentorApplicationsController : ControllerBase
         return Ok(pending);
     }
 
+    /// <summary>
+    /// Every application an administrator might look at, decided or not.
+    ///
+    /// The queue screen has Pending / Approved / Rejected tabs, and until this
+    /// existed it was fed from `pending` alone — so approving something made it
+    /// vanish rather than move, and the other two tabs were permanently empty.
+    /// Capped, newest decisions first, because the useful history is recent.
+    /// </summary>
+    [HttpGet("all")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<List<MentorApplication>>> GetAll(
+        [FromQuery] string? status, CancellationToken ct)
+    {
+        var q = _db.MentorApplications.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status)) q = q.Where(a => a.Status == status);
+
+        return Ok(await q
+            // Pending first regardless of date: it is the only tab with work in it.
+            .OrderBy(a => a.Status == "pending" ? 0 : 1)
+            .ThenByDescending(a => a.DecidedAt ?? a.SubmittedAt)
+            .Take(300)
+            .ToListAsync(ct));
+    }
+
     [HttpPost("{id}/approve")]
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult<Mentor>> Approve(Guid id, CancellationToken ct)

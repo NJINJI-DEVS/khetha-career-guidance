@@ -414,16 +414,48 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <ShieldCheck className="h-4 w-4" />{t("privacyConsent")}
             </p>
+            {session.consentOnFile === false ? (
+              <p className="mt-1.5 rounded-xl k-bd-E4CE8A k-bg-FBF5E7 border p-3 text-[11px] leading-relaxed text-slate-700">
+                <span className="font-semibold k-tx-6B5307">We have not recorded your privacy choices yet. </span>
+                This account was created before we started keeping them. Set the optional ones below whenever you
+                like — nothing optional is switched on until you say so.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                You were asked these once when you created your account. Change any of the optional ones here and it
+                is saved straight away.
+              </p>
+            )}
             <div className="mt-3 space-y-2.5">
-              {CONSENT_ITEMS.map((c) => (
-                <div key={c.key} className="flex items-center gap-3">
-                  <span className="flex-1 text-xs text-slate-700">{c.label}</span>
-                  <Pill tone={session.consent?.[c.key] ? "green" : "slate"}>
-                    {session.consent?.[c.key] ? "Allowed" : "Off"}
-                  </Pill>
-                </div>
-              ))}
+              {CONSENT_ITEMS.map((c) => {
+                const on = !!session.consent?.[c.key];
+                return (
+                  <div key={c.key} className="flex items-center gap-3">
+                    <span className="flex-1 text-xs text-slate-700">{c.label}</span>
+                    {c.required ? (
+                      <Pill tone="slate">Required</Pill>
+                    ) : (
+                      <button
+                        onClick={() => onToggleConsent?.(c.key)}
+                        disabled={consentSaving}
+                        role="switch" aria-checked={on}
+                        aria-label={`${c.label}: ${on ? "allowed" : "off"}`}
+                        className="flex items-center gap-2 k-dis-soft">
+                        <span className="text-[11px] font-medium text-slate-600">{on ? "Allowed" : "Off"}</span>
+                        <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                          on ? "k-bg-005A36" : "bg-slate-300"
+                        }`}>
+                          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                            on ? "left-[18px]" : "left-0.5"
+                          }`} />
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+            {consentError && <p className="mt-2 text-[11px] k-tx-9B1C14">{consentError}</p>}
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900">
                 <FileDown className="h-3.5 w-3.5" />{t("exportData")}

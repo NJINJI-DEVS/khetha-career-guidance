@@ -15,7 +15,7 @@ import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { useHelpRequests } from './hooks/useHelpRequests';
 import { useMentorApplications } from './hooks/useMentorApplications';
 import { useNotifications } from './hooks/useNotifications';
-import { submitMentorApplication, getMyAccountRole, claimAccountRole } from './lib/api';
+import { submitMentorApplication, getMyAccountRole, claimAccountRole, saveMyConsent } from './lib/api';
 import { signOut } from './services/authService';
 import { Screen } from './components/ui/Screen';
 import { HorizontalScroller } from './components/ui/HorizontalScroller';
@@ -216,6 +216,34 @@ export default function KhethaCareerGuidance() {
   const isGuest = !!session?.guest;
   // Dropping the guest session leaves `role` as student, so the auth screen is
   // what renders next — the learner picks up exactly where they were heading.
+  /* Consent is recorded server-side at sign-up and never asked again (see
+     AuthScreen.afterAuth). The optional items stay changeable here, because a
+     consent you cannot withdraw is not a consent. The whole set is re-sent —
+     the endpoint replaces rather than merges — and session state only moves
+     once the server has accepted it. */
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [consentError, setConsentError] = useState("");
+  const toggleConsent = async (key) => {
+    if (!session || isGuest) return;
+    const next = { ...session.consent, [key]: !session.consent?.[key], core: true };
+    setConsentSaving(true); setConsentError("");
+    try {
+      await saveMyConsent({
+        core: true,
+        ncap: !!next.ncap, notify: !!next.notify, research: !!next.research,
+        isMinor: !!session.ageGate?.minor,
+        guardianName: session.ageGate?.guardian?.name ?? null,
+        guardianRelation: session.ageGate?.guardian?.relation ?? null,
+        guardianContact: session.ageGate?.guardian?.contact ?? null,
+      });
+      setSession((s) => ({ ...s, consent: next }));
+    } catch (err) {
+      setConsentError(err.body?.error || "Could not save that change. Try again in a moment.");
+    } finally {
+      setConsentSaving(false);
+    }
+  };
+
   const enterGuest = () => { setRole("student"); setSession(GUEST_SESSION); };
   const leaveGuest = () => setSession(null);
 
@@ -718,6 +746,7 @@ export default function KhethaCareerGuidance() {
           markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
           aps={aps} go={go} packs={packs} togglePack={togglePack}
           viewport={viewport} setViewport={setViewport}
+          onToggleConsent={toggleConsent} consentSaving={consentSaving} consentError={consentError}
           installable={!!installEvent} onInstall={install} />
       )}
     </>

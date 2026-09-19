@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
     public DbSet<MentorEvent> MentorEvents => Set<MentorEvent>();
     public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<MentorEventRegistration> MentorEventRegistrations => Set<MentorEventRegistration>();
+    public DbSet<UserConsent> UserConsents => Set<UserConsent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -215,6 +216,10 @@ public class AppDbContext : DbContext
         // role a Supabase user registered under (see AccountController), not just
         // an admin flag — so UserId alone must be unique, not (UserId, Role).
         modelBuilder.Entity<UserRole>().HasKey(r => r.UserId);
+
+        // One consent record per account, replaced in place when the optional
+        // choices change.
+        modelBuilder.Entity<UserConsent>().HasKey(c => c.UserId);
 
         // One admin row per account; the account id IS the key, so a duplicate
         // grant is a primary-key conflict rather than two disagreeing rows.
