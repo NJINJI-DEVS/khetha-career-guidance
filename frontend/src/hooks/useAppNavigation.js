@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   Home, Calculator, Compass, Users, MessageCircle, User, Wrench, WifiOff,
-  ClipboardList, TrendingUp,
+  ClipboardList, TrendingUp, CalendarDays, Ticket,
 } from 'lucide-react';
 
 export function useAppNavigation({ role, t, onSms }) {
@@ -31,10 +31,17 @@ export function useAppNavigation({ role, t, onSms }) {
 
   /* Primary navigation, rendered per role */
   const NAV_BY_ROLE = {
+    // "Home" rather than "Dashboard": this screen is a landing feed — news,
+    // quick links, next step — not an analytics dashboard. The analytics that
+    // the old name implied now live in their own Progress tab.
+    //
+    // APS gave up its primary slot to make room. It is one tap away in Tools
+    // and linked from Home, whereas Progress had no route at all; on mobile
+    // there are exactly five slots and SECONDARY never renders.
     student: [
-      { key: "dashboard", label: t("dashboard"), icon: Home },
-      { key: "aps", label: t("apsCalc"), short: t("shortAps"), icon: Calculator },
+      { key: "dashboard", label: t("home"), icon: Home },
       { key: "courses", label: t("courses"), icon: Compass },
+      { key: "progress", label: t("progress"), short: t("progress"), icon: TrendingUp },
       { key: "mentors", label: t("mentorHub"), short: t("shortMentor"), icon: Users },
       { key: "advisor", label: t("aiAdvisor"), short: t("aiAdvisor"), icon: MessageCircle },
     ],
@@ -57,6 +64,9 @@ export function useAppNavigation({ role, t, onSms }) {
   const NAV = NAV_BY_ROLE[role] || NAV_BY_ROLE.student;
   const SECONDARY = role === "student"
     ? [{ key: "tools", label: t("careerTools"), icon: Wrench },
+       { key: "invites", label: t("invites"), icon: Ticket },
+       { key: "calendar", label: t("calendar"), icon: CalendarDays },
+       { key: "aps", label: t("apsCalc"), icon: Calculator },
        { key: "offline", label: t("offlineSaving"), icon: WifiOff },
        { key: "me", label: t("myProfile"), icon: User }]
     : role === "admin"

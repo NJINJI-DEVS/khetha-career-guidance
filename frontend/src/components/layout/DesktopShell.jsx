@@ -1,10 +1,11 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance) — the
+// Extracted from App.jsx's root component (KhethaCareerGuidance) — the
 // `desktopShell` JSX tree. Receives everything it needs as props; the root
 // still owns all the underlying state and just threads it down.
 import React from 'react';
 import { MessageSquare, User } from 'lucide-react';
 import { THEME } from '../../theme/tokens';
 import { ROLES } from '../../data/roles';
+import { useScrollReset } from '../../hooks/useScrollReset';
 import { Progress } from '../ui/Progress';
 import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
 import { ColourRule } from './ColourRule';
@@ -20,6 +21,8 @@ export function DesktopShell({
   offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, avatar, online, onGoOffline,
   textScale, body, modals,
 }) {
+  const scrollRef = useScrollReset(tab, route);
+
   return (
     <div className={`flex min-h-screen ${shellClass}`} style={{ background: THEME.bg }}>
       <aside className="relative flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
@@ -141,7 +144,7 @@ export function DesktopShell({
         </header>
         <ColourRule />
 
-        <main className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
+        <main ref={scrollRef} className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
           <div className={tab === "advisor" ? "h-full" : "mx-auto w-full max-w-5xl"}>{body}</div>
         </main>
 

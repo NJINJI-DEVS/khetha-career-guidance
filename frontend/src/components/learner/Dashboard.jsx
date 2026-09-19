@@ -5,6 +5,7 @@ import React from 'react';
 import {
   MapPin, WifiOff, BellRing, ChevronRight, BookOpen, GraduationCap, Camera,
   CheckCircle2, Sparkles, MessageSquare, Award, PhoneCall,
+  Wrench, CalendarDays, Calculator, Ticket,
 } from 'lucide-react';
 import { THEME } from '../../theme/tokens';
 import { SUBJECT_LABELS } from '../../data/subjects';
@@ -126,6 +127,31 @@ export function Dashboard({ t, learner, profile, go, notifications, offline, aps
             </div>
           </button>
         </div>
+      </div>
+
+      {/* Quick links. These carry the screens that have no room in the bottom
+          navigation — on a phone there are exactly five slots and they are
+          full, so without this row Tools, the calendar and the APS calculator
+          would be unreachable. */}
+      <div className="grid grid-cols-5 gap-1.5">
+        {[
+          { key: "tab:tools", icon: Wrench, label: t("careerTools") },
+          { key: "tab:invites", icon: Ticket, label: t("invites") },
+          { key: "tab:calendar", icon: CalendarDays, label: t("calendar") },
+          { key: "tab:aps", icon: Calculator, label: t("shortAps") },
+          { key: "tab:offline", icon: WifiOff, label: t("offlineSaving") },
+        ].map((q) => {
+          const Icon = q.icon;
+          return (
+            <button key={q.key} onClick={() => go(q.key)}
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-1 py-2.5 text-center">
+              <span className="grid h-9 w-9 place-items-center rounded-xl k-bg-E7F4EE k-tx-005A36">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="text-[10px] font-medium leading-tight text-slate-700">{q.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Onboarding actions */}

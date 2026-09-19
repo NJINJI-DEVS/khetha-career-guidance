@@ -34,6 +34,8 @@ import { Advisor } from './components/advisor/Advisor';
 import { useJourney } from './hooks/useJourney';
 import { OfflineCentre } from './components/learner/OfflineCentre';
 import { Dashboard } from './components/learner/Dashboard';
+import { StudentAnalytics } from './components/learner/StudentAnalytics';
+import { AcademicCalendar } from './components/calendar/AcademicCalendar';
 import { SubjectChooser } from './components/learner/SubjectChooser';
 import { SubjectEvaluation } from './components/learner/SubjectEvaluation';
 import { CvWizard } from './components/cv/CvWizard';
@@ -598,6 +600,15 @@ export default function KhethaCareerGuidance() {
           offline={settings.offline} aps={aps} eligibleCount={eligibleCount}
           onScan={() => setScanOpen(true)} scanned={scanned} onSms={() => setSmsOpen(true)}
           journey={journey} />
+      )}
+
+      {session && hasProfile && !route && tab === "progress" && (
+        <StudentAnalytics t={t} learner={learner} profile={profile} subjects={subjects}
+          mathsIsPure={mathsIsPure} aps={aps} journey={journey} go={go} isGuest={isGuest} />
+      )}
+
+      {session && hasProfile && !route && tab === "calendar" && (
+        <AcademicCalendar learner={learner} onRemind={remindEvent} />
       )}
 
       {session && hasProfile && !route && tab === "aps" && (
