@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import {
   ShieldCheck, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
-  BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
+  BellRing, FileDown, Trash2, LogOut, Heart, ClipboardList, ChevronRight, Volume2, Users,
   Settings, Pencil, Route, Monitor, Download, SunMoon, Compass,
 } from 'lucide-react';
 import { Avatar, ProfileEditor } from './ProfileEditor';
@@ -25,7 +25,7 @@ import { useThemeContext } from '../../context/ThemeContext';
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults, onToggleConsent, consentSaving, consentError }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults, onToggleConsent, consentSaving, consentError }) {
   const [tab, setTab] = useState("journey");
   const { mode: themeMode, setMode: setThemeMode, theme: resolvedTheme } = useThemeContext();
   const [editorOpen, setEditorOpen] = useState(false);
@@ -118,31 +118,6 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
               body="Complete a tool and the result is kept here, so the advisor and the directories can use it."
               cta="Open the tools" onCta={() => go("tab:tools")} />
           )}
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">Notifications</p>
-              {notifications.some((n) => !n.read) && (
-                <button onClick={markAllRead} className="text-xs font-semibold k-tx-005A36">Mark all read</button>
-              )}
-            </div>
-            <div className="space-y-2">
-              {notifications.length === 0 && (
-                <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-600">
-                  Save a qualification or an event and reminders appear here.
-                </p>
-              )}
-              {notifications.map((n) => (
-                <div key={n.id} className={`flex items-start gap-3 rounded-xl border p-3 ${n.read ? "border-slate-200 bg-white" : "k-bd-E4CE8A k-bg-FBF5E7"}`}>
-                  <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${n.read ? "text-slate-500" : "k-tx-6B5307"}`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900">{n.title}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-600">{n.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 

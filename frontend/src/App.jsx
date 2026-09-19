@@ -29,6 +29,7 @@ import { GuestBanner, GuestGate } from './components/auth/GuestGate';
 import { GUEST_LEARNER, GUEST_SESSION } from './data/guestLearner';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
+import { NotificationsModal } from './components/layout/NotificationsModal';
 import { CareerDetail } from './components/explore/CareerDetail';
 import { QualDetail } from './components/explore/QualDetail';
 import { Advisor } from './components/advisor/Advisor';
@@ -394,6 +395,7 @@ export default function KhethaCareerGuidance() {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [smsOpen, setSmsOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const {
     tab, setTab, route, setRoute, exploreTab, setExploreTab, fieldFilter, setFieldFilter,
@@ -802,8 +804,8 @@ export default function KhethaCareerGuidance() {
 
       {session && (!isStudent || hasProfile) && !route && tab === "me" && (
         <MeScreen t={t} session={session} profile={profile} setProfile={setProfile}
-          settings={settings} setSettings={setSettings} notifications={notifications}
-          markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
+          settings={settings} setSettings={setSettings}
+          onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
           aps={aps} go={go} packs={packs} togglePack={togglePack}
           viewport={viewport} setViewport={setViewport}
           onToggleConsent={toggleConsent} consentSaving={consentSaving} consentError={consentError}
@@ -848,6 +850,10 @@ export default function KhethaCareerGuidance() {
         <SmsSummaryModal learner={learner} aps={aps} matched={matchedQuals} profile={profile}
           packages={gr9Packages} onClose={() => setSmsOpen(false)} />
       )}
+      {notificationsOpen && (
+        <NotificationsModal notifications={notifications} markAllRead={markAllRead}
+          onClose={() => setNotificationsOpen(false)} />
+      )}
     </>
   );
 
@@ -863,7 +869,7 @@ export default function KhethaCareerGuidance() {
     offline: settings.offline,
     saveOffline: settings.saveOffline,
     unread,
-    onOpenNotifications: () => { setTab("me"); setRoute(null); },
+    onOpenNotifications: () => setNotificationsOpen(true),
     onOpenProfile: () => { setTab("me"); setRoute(null); },
     identity: profile.displayName || session?.identity,
     avatar: profile.avatar,
