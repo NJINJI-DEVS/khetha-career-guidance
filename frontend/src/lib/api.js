@@ -42,6 +42,13 @@ export const getMyAdminAccount = () => apiFetch('/api/admin/me');
 export const claimAccountRole = (role) =>
   apiFetch('/api/account/role', { method: 'POST', body: JSON.stringify({ role }) });
 
+/** Consent already on file. Throws with status 404 when there is none, or when
+ *  what is on file predates the current consent wording. */
+export const getMyConsent = () => apiFetch('/api/account/consent');
+
+export const saveMyConsent = (consent) =>
+  apiFetch('/api/account/consent', { method: 'POST', body: JSON.stringify(consent) });
+
 // Real AI fallback for the Advisor chat, once its own instant keyword
 // scripts find no match. Requires a signed-in session (not guest mode).
 export const askAdvisor = (message, language) =>
@@ -98,6 +105,13 @@ export const updateMyProfileData = (profileData) =>
   apiFetch('/api/matriculants/me/profile-data', {
     method: 'PUT',
     body: JSON.stringify({ data: profileData ? JSON.stringify(profileData) : null }),
+  });
+
+/** Whole-object replace; see MatriculantsController.UpdatePreferences. */
+export const updateMyPreferences = (preferences) =>
+  apiFetch('/api/matriculants/me/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
   });
 
 export const deleteMyProfileData = () =>

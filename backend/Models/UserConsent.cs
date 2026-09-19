@@ -21,9 +21,6 @@ public class UserConsent
     /// <summary>Required for the app to function at all — storing the career profile.</summary>
     public bool Core { get; set; }
 
-    /// <summary>Optional: sync with the learner's existing NCAP record.</summary>
-    public bool Ncap { get; set; }
-
     /// <summary>Optional: deadline and event reminders.</summary>
     public bool Notify { get; set; }
 
@@ -34,6 +31,14 @@ public class UserConsent
     // POPIA s35 treats a child's personal information as special: a minor
     // cannot consent for themselves. Only learners are asked, because mentors
     // and departmental staff are adults by the nature of the account.
+
+    /// <summary>
+    /// The real date of birth given at the age gate, not a self-declared "I am
+    /// over 18" click. Kept here so it survives to profile creation: a learner
+    /// who signs up, closes the app, and comes back before finishing onboarding
+    /// would otherwise arrive with nothing to record.
+    /// </summary>
+    public DateOnly? DateOfBirth { get; set; }
 
     public bool IsMinor { get; set; }
     public string? GuardianName { get; set; }

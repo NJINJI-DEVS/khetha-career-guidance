@@ -235,8 +235,9 @@ export default function KhethaCareerGuidance() {
     try {
       await saveMyConsent({
         core: true,
-        ncap: !!next.ncap, notify: !!next.notify, research: !!next.research,
+        notify: !!next.notify, research: !!next.research,
         isMinor: !!session.ageGate?.minor,
+        dateOfBirth: session.ageGate?.dateOfBirth ?? null,
         guardianName: session.ageGate?.guardian?.name ?? null,
         guardianRelation: session.ageGate?.guardian?.relation ?? null,
         guardianContact: session.ageGate?.guardian?.contact ?? null,
@@ -707,7 +708,7 @@ export default function KhethaCareerGuidance() {
       )}
 
       {session && hasProfile && !route && tab === "invites" && (
-        <EventInvites learner={learner} go={go} />
+        <EventInvites learner={learner} go={go} isGuest={isGuest} />
       )}
 
       {session && hasProfile && !route && tab === "calendar" && (

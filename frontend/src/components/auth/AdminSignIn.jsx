@@ -62,7 +62,7 @@ export function AdminSignIn({ onBack, onAuthenticated }) {
         admin,
         isAdmin: true,
         trustDevice: false,
-        consent: { core: true, ncap: false, notify: false, research: false },
+        consent: { core: true, notify: false, research: false },
         ageGate: { minor: false },
         signedInAt: new Date(),
       });
