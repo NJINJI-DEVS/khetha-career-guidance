@@ -1,8 +1,9 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance) — the
+// Extracted from App.jsx's root component (KhethaCareerGuidance) — the
 // `mobileShell` JSX tree. Receives everything it needs as props; the root
 // still owns all the underlying state and just threads it down.
 import React from 'react';
 import { ROLES } from '../../data/roles';
+import { useScrollReset } from '../../hooks/useScrollReset';
 import { NextStepBar } from '../learner/NextStepBar';
 import { DeptBar } from './DeptBar';
 import { ColourRule } from './ColourRule';
@@ -20,6 +21,8 @@ export function MobileShell({
   NAV, SECONDARY, tab, setTab, route,
   installable, onInstall,
 }) {
+  const scrollRef = useScrollReset(tab, route);
+
   return (
     <div className="flex min-h-screen items-center justify-center p-0 sm:p-6">
       <div className={`relative flex h-screen w-full ${shellWidth} flex-col overflow-hidden bg-slate-50 shadow-2xl ${shellHeight} sm:rounded-[2.25rem] sm:border-[10px] sm:border-slate-900 ${shellClass}`}>
@@ -32,7 +35,7 @@ export function MobileShell({
         <div className="shrink-0 bg-white px-4 pb-3 pt-3">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Njinji Career Guidance</h1>
+              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Khetha Career Guidance</h1>
               <p className="mt-1 text-[11px] leading-tight text-slate-600">
                 Department of Higher Education &amp; Training · NCAP modern gateway
               </p>
@@ -61,7 +64,7 @@ export function MobileShell({
         <ColourRule />
 
         <div className="relative min-h-0 flex-1">
-          <main className="h-full overflow-y-auto" style={{ zoom: textScale }}>
+          <main ref={scrollRef} className="h-full overflow-y-auto" style={{ zoom: textScale }}>
             <div className={layout === "tablet" ? "mx-auto w-full max-w-2xl" : ""}>{body}</div>
           </main>
 

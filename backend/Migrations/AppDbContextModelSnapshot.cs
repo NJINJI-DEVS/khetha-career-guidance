@@ -23,6 +23,75 @@ namespace CareerAdvisor.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CareerAdvisor.Api.Models.Admin", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("granted_at");
+
+                    b.Property<string>("GrantedByEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("granted_by_email");
+
+                    b.Property<Guid?>("GrantedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by_user_id");
+
+                    b.Property<string>("GrantedVia")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("granted_via");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid?>("RevokedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revoked_by_user_id");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_admins");
+
+                    b.HasIndex("Email")
+                        .HasDatabaseName("ix_admins_email");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("ix_admins_is_active");
+
+                    b.ToTable("admins", (string)null);
+                });
+
             modelBuilder.Entity("CareerAdvisor.Api.Models.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -351,6 +420,14 @@ namespace CareerAdvisor.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("school");
 
+                    b.Property<string>("SignupDeviceType")
+                        .HasColumnType("text")
+                        .HasColumnName("signup_device_type");
+
+                    b.Property<string>("SignupPlatform")
+                        .HasColumnType("text")
+                        .HasColumnName("signup_platform");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
@@ -640,6 +717,167 @@ namespace CareerAdvisor.Api.Migrations
                         .HasDatabaseName("ix_mentor_applications_user_id");
 
                     b.ToTable("mentor_applications", (string)null);
+                });
+
+            modelBuilder.Entity("CareerAdvisor.Api.Models.MentorEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_user_id");
+
+                    b.Property<string>("DecisionNote")
+                        .HasColumnType("text")
+                        .HasColumnName("decision_note");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("impact");
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_online");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("MentorName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("mentor_name");
+
+                    b.Property<string>("MentorRole")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("mentor_role");
+
+                    b.Property<Guid>("MentorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mentor_user_id");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("province");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Venue")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("venue");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mentor_events");
+
+                    b.HasIndex("MentorUserId")
+                        .HasDatabaseName("ix_mentor_events_mentor");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_mentor_events_status");
+
+                    b.HasIndex("Status", "StartsAt")
+                        .HasDatabaseName("ix_mentor_events_status_starts");
+
+                    b.ToTable("mentor_events", (string)null);
+                });
+
+            modelBuilder.Entity("CareerAdvisor.Api.Models.MentorEventRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<bool?>("Attended")
+                        .HasColumnType("boolean")
+                        .HasColumnName("attended");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<string>("LearnerGrade")
+                        .HasColumnType("text")
+                        .HasColumnName("learner_grade");
+
+                    b.Property<string>("LearnerName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("learner_name");
+
+                    b.Property<string>("LearnerProvince")
+                        .HasColumnType("text")
+                        .HasColumnName("learner_province");
+
+                    b.Property<Guid>("LearnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("learner_user_id");
+
+                    b.Property<Guid>("MentorEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mentor_event_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mentor_event_registrations");
+
+                    b.HasIndex("LearnerUserId")
+                        .HasDatabaseName("ix_mentor_event_registrations_learner");
+
+                    b.HasIndex("MentorEventId", "LearnerUserId")
+                        .IsUnique()
+                        .HasDatabaseName("mentor_event_registrations_unique");
+
+                    b.ToTable("mentor_event_registrations", (string)null);
                 });
 
             modelBuilder.Entity("CareerAdvisor.Api.Models.Message", b =>
@@ -1009,6 +1247,63 @@ namespace CareerAdvisor.Api.Migrations
                     b.ToTable("universities", (string)null);
                 });
 
+            modelBuilder.Entity("CareerAdvisor.Api.Models.UserConsent", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<bool>("Core")
+                        .HasColumnType("boolean")
+                        .HasColumnName("core");
+
+                    b.Property<string>("GuardianContact")
+                        .HasColumnType("text")
+                        .HasColumnName("guardian_contact");
+
+                    b.Property<string>("GuardianName")
+                        .HasColumnType("text")
+                        .HasColumnName("guardian_name");
+
+                    b.Property<string>("GuardianRelation")
+                        .HasColumnType("text")
+                        .HasColumnName("guardian_relation");
+
+                    b.Property<bool>("IsMinor")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_minor");
+
+                    b.Property<bool>("Ncap")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ncap");
+
+                    b.Property<bool>("Notify")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify");
+
+                    b.Property<bool>("Research")
+                        .HasColumnType("boolean")
+                        .HasColumnName("research");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_user_consents");
+
+                    b.ToTable("user_consents", (string)null);
+                });
+
             modelBuilder.Entity("CareerAdvisor.Api.Models.UserRole", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -1072,6 +1367,89 @@ namespace CareerAdvisor.Api.Migrations
                     b.Navigation("Mentor");
                 });
 
+            modelBuilder.Entity("CareerAdvisor.Api.Models.Matriculant", b =>
+                {
+                    b.OwnsOne("CareerAdvisor.Api.Models.LearnerPreferences", "Preferences", b1 =>
+                        {
+                            b1.Property<Guid>("MatriculantId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<List<string>>("CareerGoals")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.Property<string>("EducationLevel")
+                                .HasColumnType("text");
+
+                            b1.Property<List<string>>("FieldsOfInterest")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.Property<bool>("HighContrast")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("Language")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<int?>("MaxTravelKm")
+                                .HasColumnType("integer");
+
+                            b1.Property<bool>("NotifyDeadlines")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("NotifyEvents")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("NotifyMentorReplies")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("NotifyNsfas")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("PreferredProvince")
+                                .HasColumnType("text");
+
+                            b1.Property<bool>("ReadAloud")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("ReduceMotion")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("SaveOffline")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("SimpleLanguage")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("StudyMode")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<double>("TextScale")
+                                .HasColumnType("double precision");
+
+                            b1.Property<string>("ThemeMode")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<DateTime?>("UpdatedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.HasKey("MatriculantId");
+
+                            b1.ToTable("matriculants");
+
+                            b1.ToJson("preferences");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MatriculantId")
+                                .HasConstraintName("fk_matriculants_matriculants_id");
+                        });
+
+                    b.Navigation("Preferences");
+                });
+
             modelBuilder.Entity("CareerAdvisor.Api.Models.MatriculantSubject", b =>
                 {
                     b.HasOne("CareerAdvisor.Api.Models.Matriculant", "Matriculant")
@@ -1094,6 +1472,18 @@ namespace CareerAdvisor.Api.Migrations
                         .HasConstraintName("fk_mentors_mentor_applications_source_application_id");
 
                     b.Navigation("SourceApplication");
+                });
+
+            modelBuilder.Entity("CareerAdvisor.Api.Models.MentorEventRegistration", b =>
+                {
+                    b.HasOne("CareerAdvisor.Api.Models.MentorEvent", "MentorEvent")
+                        .WithMany()
+                        .HasForeignKey("MentorEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_mentor_event_registrations_mentor_events_mentor_event_id");
+
+                    b.Navigation("MentorEvent");
                 });
 
             modelBuilder.Entity("CareerAdvisor.Api.Models.Message", b =>

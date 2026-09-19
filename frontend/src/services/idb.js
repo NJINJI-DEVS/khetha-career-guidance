@@ -1,6 +1,12 @@
 // Extracted from App.jsx (Stage 3 of frontend restructuring plan).
 // Offline: IndexedDB with a localStorage fallback.
 
+// Deliberately NOT renamed to "khetha-career" with the rest of the rebrand.
+// This database holds the offline pack a learner has already paid for in mobile
+// data. Opening a differently-named database creates an empty one, so the
+// rename would present as "your offline content is gone, download it again" —
+// on a metered connection, for the learners least able to afford it. The name
+// is an internal identifier no one sees; the cost of changing it is real.
 const IDB_NAME = "njinji-career";
 const IDB_STORE = "kv";
 

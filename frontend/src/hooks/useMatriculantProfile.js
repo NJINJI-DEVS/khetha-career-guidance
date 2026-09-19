@@ -94,5 +94,9 @@ export function useMatriculantProfile({ enabled }) {
     // how this seeds ProfileContext and gets debounce-saved back on change.
     appProfile: parseAppProfile(matriculant),
     saveAppProfile: updateMyProfileData,
+    // Declared preferences (language, accessibility, notifications, fields of
+    // interest). Undefined until the profile loads; null for an account that
+    // has never saved any, which is how the app knows to capture them once.
+    preferences: matriculant ? (matriculant.preferences ?? null) : undefined,
   };
 }

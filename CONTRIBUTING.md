@@ -1,4 +1,4 @@
-# Contributing to Njinji Career Guidance
+# Contributing to Khetha Career Guidance
 
 Thanks for working on this. It's a hackathon-paced project with real government-facing content and
 real learner data implications, so a few conventions exist specifically to stop bugs and risks that have
@@ -23,8 +23,8 @@ already cost us time once — please read this before your first PR.
 ## Getting set up
 
 ```bash
-git clone https://github.com/<org-or-user>/njinji-career-guidance.git
-cd njinji-career-guidance
+git clone https://github.com/<org-or-user>/khetha-career-guidance.git
+cd khetha-career-guidance
 npm install
 cp .env.example .env.local   # fill in local values, never commit this file
 npm run dev

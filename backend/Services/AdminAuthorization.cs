@@ -7,12 +7,16 @@ namespace CareerAdvisor.Api.Services;
 /// <summary>
 /// Real server-side admin authorization. The frontend's `role` is pure UI
 /// navigation state with zero enforcement (see useAppNavigation.js) — this is
-/// the actual gate for admin-only actions (approving/rejecting mentor
-/// applications), backed by the user_roles table.
+/// the actual gate for every admin-only action.
 ///
-/// Bootstrapping the first admin: once you have a real Supabase Auth account you
-/// want as admin, run this once in the Supabase SQL editor:
-///   INSERT INTO user_roles (user_id, role) VALUES ('&lt;their-auth-user-id&gt;', 'admin');
+/// Backed by the `admins` table, not `user_roles`. The two were doing one
+/// another's jobs: user_roles decides which navigation an account sees, admins
+/// decides what it may actually do, and only the second needs an audit trail.
+/// A row in user_roles saying "admin" grants nothing on its own.
+///
+/// Bootstrapping the first administrator is handled by AdminController, keyed on
+/// the Admin:BootstrapEmail configuration value, and only works while the table
+/// holds no active administrator.
 /// </summary>
 public class AdminRequirement : IAuthorizationRequirement { }
 
@@ -28,8 +32,27 @@ public class AdminAuthorizationHandler : AuthorizationHandler<AdminRequirement>
         if (subClaim is null || !Guid.TryParse(subClaim, out var userId))
             return;
 
-        var isAdmin = await _db.UserRoles.AnyAsync(r => r.UserId == userId && r.Role == "admin");
-        if (isAdmin)
-            context.Succeed(requirement);
+        var admin = await _db.Admins
+            .FirstOrDefaultAsync(a => a.UserId == userId && a.IsActive);
+        if (admin is null) return;
+
+        context.Succeed(requirement);
+
+        // Last-seen is best-effort telemetry for spotting dormant admin
+        // accounts. It must never turn a successful authorization into a
+        // failure, and it is throttled to a day so an admin clicking through
+        // ten screens does not write ten times.
+        try
+        {
+            if (admin.LastSeenAt is null || (DateTime.UtcNow - admin.LastSeenAt.Value).TotalHours >= 24)
+            {
+                admin.LastSeenAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+        }
+        catch
+        {
+            // Ignored on purpose: see above.
+        }
     }
 }

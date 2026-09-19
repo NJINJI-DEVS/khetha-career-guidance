@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance).
+// Extracted from App.jsx's root component (KhethaCareerGuidance).
 // Originally an inline closure over `settings`/`setTab`/`setRoute`/`unread`;
 // converted to explicit props so it can live in its own file — the root now
 // does `onOpenNotifications={() => { setTab("me"); setRoute(null); }}`.

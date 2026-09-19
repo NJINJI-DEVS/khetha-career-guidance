@@ -27,6 +27,17 @@ public class Matriculant
     public DateOnly? DateOfBirth { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Signup device, recorded once at profile creation so DHET can see what
+    // learners actually reach the service on — which decides whether effort goes
+    // into the PWA, a lighter build, or USSD/SMS reach.
+    //
+    // DELIBERATELY COARSE: a device class and OS family, never the raw
+    // User-Agent. A full UA string is a fingerprinting vector and a POPIA
+    // data-minimisation problem, and answers no question the department is
+    // actually asking.
+    public string? SignupDeviceType { get; set; }   // "mobile" | "tablet" | "desktop" | "unknown"
+    public string? SignupPlatform { get; set; }     // "Android" | "iOS" | "Windows" | "macOS" | "Linux" | "unknown"
+
     // The learner's in-app journey state (favourited qualifications, saved
     // Career Choice/Job Fit/Subject Chooser results, which "next step" prompts
     // have been dismissed) — opaque JSON produced and consumed entirely by the
@@ -36,6 +47,14 @@ public class Matriculant
     // ever lived in React state (reset on every reload) or an opt-in local
     // cache, which is why "Step 2 of 6" kept resetting for real users.
     public string? ProfileData { get; set; }
+
+    /// <summary>
+    /// Declared preferences — fields of interest, province, notification and
+    /// accessibility choices. Captured at onboarding and editable from account
+    /// settings; see <see cref="LearnerPreferences"/> for why this is typed and
+    /// separate from <see cref="ProfileData"/>.
+    /// </summary>
+    public LearnerPreferences? Preferences { get; set; }
 
     public ICollection<MatriculantSubject> Subjects { get; set; } = new List<MatriculantSubject>();
 }

@@ -47,6 +47,13 @@ export const askAdvisor = (message, language) =>
     body: JSON.stringify({ message, language }),
   });
 
+/** Consent already on file. Throws with status 404 when there is none, or when
+ *  what is on file predates the current consent wording. */
+export const getMyConsent = () => apiFetch('/api/account/consent');
+
+export const saveMyConsent = (consent) =>
+  apiFetch('/api/account/consent', { method: 'POST', body: JSON.stringify(consent) });
+
 export const calculateAps = (subjects) =>
   apiFetch('/api/aps/calculate', {
     method: 'POST',
@@ -92,6 +99,13 @@ export const updateMyProfileData = (profileData) =>
 
 export const deleteMyProfileData = () =>
   apiFetch('/api/matriculants/me/profile-data', { method: 'DELETE' });
+
+/** Whole-object replace; see MatriculantsController.UpdatePreferences. */
+export const updateMyPreferences = (preferences) =>
+  apiFetch('/api/matriculants/me/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
+  });
 
 export const searchSaqa = (q) =>
   apiFetch(`/api/qualifications/saqa${q ? `?q=${encodeURIComponent(q)}` : ''}`);
@@ -139,6 +153,48 @@ export const unshareMyCv = () => apiFetch('/api/cv/me/share', { method: 'DELETE'
 export const getSharedCv = (token) =>
   apiFetch(`/api/cv/shared/${encodeURIComponent(token)}`);
 
+// --- Mentor events: seminars, work shadowing, site visits ---
+// Every one of these is approved by an administrator before a learner sees it.
+
+export const requestMentorEvent = (event) =>
+  apiFetch('/api/mentorevents', { method: 'POST', body: JSON.stringify(event) });
+
+export const getMyMentorEvents = () => apiFetch('/api/mentorevents/mine');
+
+export const getPendingMentorEvents = () => apiFetch('/api/mentorevents/pending');
+
+export const getAllMentorEvents = (status) =>
+  apiFetch(`/api/mentorevents/all${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+
+export const approveMentorEvent = (id, note) =>
+  apiFetch(`/api/mentorevents/${id}/approve`, { method: 'POST', body: JSON.stringify({ note: note || null }) });
+
+export const declineMentorEvent = (id, note) =>
+  apiFetch(`/api/mentorevents/${id}/decline`, { method: 'POST', body: JSON.stringify({ note: note || null }) });
+
+/** Takes a place at an approved event. Fails with 409 if it is already full. */
+export const acceptMentorEvent = (id) =>
+  apiFetch(`/api/mentorevents/${id}/accept`, { method: 'POST' });
+
+/** Releases a place, returning it to the pool. */
+export const cancelMentorEventPlace = (id) =>
+  apiFetch(`/api/mentorevents/${id}/cancel`, { method: 'POST' });
+
+/** The events this learner has accepted — what their calendar counts as theirs. */
+export const getMyRegisteredEvents = () => apiFetch('/api/mentorevents/registered');
+
+/** The register for one event. Host mentor and administrators only. */
+export const getEventAttendees = (id) => apiFetch(`/api/mentorevents/${id}/attendees`);
+
+/** Approved, still-ahead events for a learner's calendar. */
+export const getUpcomingMentorEvents = ({ province, days } = {}) => {
+  const params = new URLSearchParams();
+  if (province) params.set('province', province);
+  if (days) params.set('days', String(days));
+  const qs = params.toString();
+  return apiFetch(`/api/mentorevents/upcoming${qs ? `?${qs}` : ''}`);
+};
+
 // --- Mentor hub ---
 
 export const listMentors = ({ field, province, q } = {}) => {
@@ -156,6 +212,10 @@ export const submitMentorApplication = (application) =>
 export const getMyMentorApplications = () => apiFetch('/api/mentorapplications/me');
 
 export const getPendingMentorApplications = () => apiFetch('/api/mentorapplications/pending');
+
+/** Every application, decided or not — what the admin queue's three tabs need. */
+export const getAllMentorApplications = (status) =>
+  apiFetch(`/api/mentorapplications/all${status ? `?status=${encodeURIComponent(status)}` : ''}`);
 
 export const approveMentorApplication = (id) =>
   apiFetch(`/api/mentorapplications/${id}/approve`, { method: 'POST' });
@@ -195,3 +255,17 @@ export const markAllNotificationsRead = () =>
 // --- Admin analytics ---
 
 export const getAdminAnalytics = () => apiFetch('/api/admin/analytics');
+
+// --- Administrator identity and management ---
+
+/** The signed-in account's admin record. Throws with status 404 if it is not
+ *  an administrator — that is the answer, not a failure. */
+export const getMyAdmin = () => apiFetch('/api/admin/me');
+
+export const listAdmins = () => apiFetch('/api/admin/admins');
+
+export const grantAdmin = (email, note) =>
+  apiFetch('/api/admin/admins', { method: 'POST', body: JSON.stringify({ email, note: note || null }) });
+
+export const revokeAdmin = (userId, note) =>
+  apiFetch(`/api/admin/admins/${userId}`, { method: 'DELETE', body: JSON.stringify({ note: note || null }) });

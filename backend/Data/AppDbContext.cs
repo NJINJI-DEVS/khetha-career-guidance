@@ -27,6 +27,10 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<CvDocument> CvDocuments => Set<CvDocument>();
+    public DbSet<MentorEvent> MentorEvents => Set<MentorEvent>();
+    public DbSet<Admin> Admins => Set<Admin>();
+    public DbSet<MentorEventRegistration> MentorEventRegistrations => Set<MentorEventRegistration>();
+    public DbSet<UserConsent> UserConsents => Set<UserConsent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +45,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Matriculant>().HasIndex(m => m.UserId).IsUnique().HasDatabaseName("matriculants_user_id_key");
         modelBuilder.Entity<Matriculant>().HasIndex(m => m.Province).HasDatabaseName("ix_matriculants_province");
         modelBuilder.Entity<Matriculant>().Property(m => m.ProfileData).HasColumnType("jsonb");
+
+        // Mapped with ToJson rather than as a set of flat columns: preferences
+        // are read and written as one whole object, and adding a preference
+        // should not cost a migration and a deploy.
+        modelBuilder.Entity<Matriculant>().OwnsOne(m => m.Preferences, b => b.ToJson());
 
         modelBuilder.Entity<Matriculant>()
             .HasMany(m => m.Subjects)
@@ -105,6 +114,31 @@ public class AppDbContext : DbContext
         // want: unlimited private CVs, one row per live share token.
         modelBuilder.Entity<CvDocument>().HasIndex(c => c.ShareToken).IsUnique()
             .HasDatabaseName("cv_documents_share_token_key");
+
+        // The admin queue reads pending events; the learner calendar reads
+        // approved ones by date. Both are covered here.
+        modelBuilder.Entity<MentorEvent>().HasIndex(e => e.Status).HasDatabaseName("ix_mentor_events_status");
+        modelBuilder.Entity<MentorEvent>().HasIndex(e => e.MentorUserId).HasDatabaseName("ix_mentor_events_mentor");
+        modelBuilder.Entity<MentorEvent>()
+            .HasIndex(e => new { e.Status, e.StartsAt })
+            .HasDatabaseName("ix_mentor_events_status_starts");
+
+        // One registration row per learner per event, enforced by the database.
+        // A double-tap on a slow connection, or two tabs, must not consume two
+        // places -- and the accept path relies on this to be able to reinstate a
+        // cancelled booking instead of inserting a second one.
+        modelBuilder.Entity<MentorEventRegistration>()
+            .HasIndex(r => new { r.MentorEventId, r.LearnerUserId })
+            .IsUnique()
+            .HasDatabaseName("mentor_event_registrations_unique");
+        modelBuilder.Entity<MentorEventRegistration>()
+            .HasIndex(r => r.LearnerUserId)
+            .HasDatabaseName("ix_mentor_event_registrations_learner");
+        modelBuilder.Entity<MentorEventRegistration>()
+            .HasOne(r => r.MentorEvent)
+            .WithMany()
+            .HasForeignKey(r => r.MentorEventId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<DataSyncLog>()
             .HasIndex(d => new { d.SourceName, d.RunAt })
@@ -182,5 +216,15 @@ public class AppDbContext : DbContext
         // role a Supabase user registered under (see AccountController), not just
         // an admin flag — so UserId alone must be unique, not (UserId, Role).
         modelBuilder.Entity<UserRole>().HasKey(r => r.UserId);
+
+        // One consent record per account, replaced in place when the optional
+        // choices change.
+        modelBuilder.Entity<UserConsent>().HasKey(c => c.UserId);
+
+        // One admin row per account; the account id IS the key, so a duplicate
+        // grant is a primary-key conflict rather than two disagreeing rows.
+        modelBuilder.Entity<Admin>().HasKey(a => a.UserId);
+        modelBuilder.Entity<Admin>().HasIndex(a => a.IsActive).HasDatabaseName("ix_admins_is_active");
+        modelBuilder.Entity<Admin>().HasIndex(a => a.Email).HasDatabaseName("ix_admins_email");
     }
 }

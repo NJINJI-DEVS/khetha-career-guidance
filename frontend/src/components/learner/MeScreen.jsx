@@ -5,7 +5,7 @@ import { useState } from 'react';
 import {
   ShieldCheck, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
   BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
-  Settings, Pencil, Route, Monitor, Download,
+  Settings, Pencil, Route, Monitor, Download, SunMoon, Compass,
 } from 'lucide-react';
 import { Avatar, ProfileEditor } from './ProfileEditor';
 import { occById } from '../../data/occupations';
@@ -17,13 +17,17 @@ import { CONSENT_ITEMS } from '../../data/auth';
 import { Pill } from '../ui/Pill';
 import { EmptyState } from '../ui/EmptyState';
 import { SectionTitle } from '../ui/SectionTitle';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { PreferencesForm } from '../settings/PreferencesForm';
+import { useThemeContext } from '../../context/ThemeContext';
 
 /* ==================================================================
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults, onToggleConsent, consentSaving, consentError }) {
   const [tab, setTab] = useState("journey");
+  const { mode: themeMode, setMode: setThemeMode, theme: resolvedTheme } = useThemeContext();
   const [editorOpen, setEditorOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -218,6 +222,37 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
             </div>
           </div>
 
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Compass className="h-4 w-4" />What you're looking for
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+              Saved to your account, so you are never asked again and these follow you to any device you sign in on.
+              Change them whenever you like.
+            </p>
+            <div className="mt-3">
+              <PreferencesForm value={settings} onChange={(next) => setSettings((s) => ({ ...s, ...next }))} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <SunMoon className="h-4 w-4" />Appearance
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+              System follows whatever your phone is set to, including when it switches to dark on battery saver.
+              Choose Light or Dark to override that.
+            </p>
+            <div className="mt-3">
+              <ThemeToggle mode={themeMode} setMode={setThemeMode} />
+            </div>
+            {themeMode === "system" && (
+              <p className="mt-2 text-[11px] text-slate-600">
+                Currently showing {resolvedTheme === "dark" ? "dark" : "light"}, following your device.
+              </p>
+            )}
+          </div>
+
           {/* Preview layout — moved here from a floating bar that covered the
               bottom navigation and made the tabs underneath unclickable. */}
           {setViewport && (
@@ -361,16 +396,48 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <ShieldCheck className="h-4 w-4" />{t("privacyConsent")}
             </p>
+            {session.consentOnFile === false ? (
+              <p className="mt-1.5 rounded-xl k-bd-E4CE8A k-bg-FBF5E7 border p-3 text-[11px] leading-relaxed text-slate-700">
+                <span className="font-semibold k-tx-6B5307">We have not recorded your privacy choices yet. </span>
+                This account was created before we started keeping them. Set the optional ones below whenever you
+                like — nothing optional is switched on until you say so.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                You were asked these once when you created your account. Change any of the optional ones here and it
+                is saved straight away.
+              </p>
+            )}
             <div className="mt-3 space-y-2.5">
-              {CONSENT_ITEMS.map((c) => (
-                <div key={c.key} className="flex items-center gap-3">
-                  <span className="flex-1 text-xs text-slate-700">{c.label}</span>
-                  <Pill tone={session.consent?.[c.key] ? "green" : "slate"}>
-                    {session.consent?.[c.key] ? "Allowed" : "Off"}
-                  </Pill>
-                </div>
-              ))}
+              {CONSENT_ITEMS.map((c) => {
+                const on = !!session.consent?.[c.key];
+                return (
+                  <div key={c.key} className="flex items-center gap-3">
+                    <span className="flex-1 text-xs text-slate-700">{c.label}</span>
+                    {c.required ? (
+                      <Pill tone="slate">Required</Pill>
+                    ) : (
+                      <button
+                        onClick={() => onToggleConsent?.(c.key)}
+                        disabled={consentSaving}
+                        role="switch" aria-checked={on}
+                        aria-label={`${c.label}: ${on ? "allowed" : "off"}`}
+                        className="flex items-center gap-2 k-dis-soft">
+                        <span className="text-[11px] font-medium text-slate-600">{on ? "Allowed" : "Off"}</span>
+                        <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                          on ? "k-bg-005A36" : "bg-slate-300"
+                        }`}>
+                          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                            on ? "left-[18px]" : "left-0.5"
+                          }`} />
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+            {consentError && <p className="mt-2 text-[11px] k-tx-9B1C14">{consentError}</p>}
             {onExportData && onDeleteResults ? (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -410,7 +477,7 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
           </button>
 
           <p className="text-center text-[11px] leading-relaxed text-slate-600">
-            Njinji Career Guidance is a demonstration built by Njinjicom against the DHET Khetha NCAP challenge.
+            Khetha Career Guidance is a demonstration built by Njinjicom against the DHET Khetha NCAP challenge.
             Course, provider and event data is illustrative — confirm with the institution before applying.
           </p>
         </div>

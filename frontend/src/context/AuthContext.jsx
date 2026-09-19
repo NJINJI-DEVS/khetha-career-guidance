@@ -1,4 +1,4 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance): role,
+// Extracted from App.jsx's root component (KhethaCareerGuidance): role,
 // session, and the mentor/professional verification-modal flag. Genuinely
 // global — gates almost every screen (routing, Mentor/Admin permission
 // checks, MeScreen). The real learner profile lives in

@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { THEME } from './theme/tokens';
 import { QUALIFICATIONS, qualById } from './data/qualifications';
 import { providerById } from './data/providers';
 import { ROLES } from './data/roles';
@@ -9,13 +8,14 @@ import { pushHistory } from './engines/history';
 import { idbGet, idbSet } from './services/idb';
 import { storage, STORE_KEY } from './services/storage';
 import { useSettings } from './context/SettingsContext';
+import { useThemeContext } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import { useProfile, DEFAULT_PROFILE } from './context/ProfileContext';
 import { useMatriculantProfile } from './hooks/useMatriculantProfile';
 import { useHelpRequests } from './hooks/useHelpRequests';
 import { useMentorApplications } from './hooks/useMentorApplications';
 import { useNotifications } from './hooks/useNotifications';
-import { submitMentorApplication, getMyAccountRole, claimAccountRole, getMyMatriculantProfile, deleteMyProfileData } from './lib/api';
+import { submitMentorApplication, getMyAccountRole, claimAccountRole, getMyMatriculantProfile, deleteMyProfileData, saveMyConsent } from './lib/api';
 import { signOut } from './services/authService';
 import { Screen } from './components/ui/Screen';
 import { HorizontalScroller } from './components/ui/HorizontalScroller';
@@ -23,9 +23,9 @@ import { RoleSelector } from './components/auth/RoleSelector';
 import { VerificationFlow } from './components/auth/VerificationFlow';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { OnboardingScreen } from './components/auth/OnboardingScreen';
+import { AdminSignIn } from './components/auth/AdminSignIn';
 import { GuestBanner, GuestGate } from './components/auth/GuestGate';
 import { GUEST_LEARNER, GUEST_SESSION } from './data/guestLearner';
-import { DEMO_ADMIN_SESSION, DEMO_APPLICATIONS, DEMO_ANALYTICS } from './data/demoAdmin';
 import { OcrScanModal } from './components/learner/OcrScanModal';
 import { SmsSummaryModal } from './components/learner/SmsSummaryModal';
 import { CareerDetail } from './components/explore/CareerDetail';
@@ -34,6 +34,9 @@ import { Advisor } from './components/advisor/Advisor';
 import { useJourney } from './hooks/useJourney';
 import { OfflineCentre } from './components/learner/OfflineCentre';
 import { Dashboard } from './components/learner/Dashboard';
+import { StudentAnalytics } from './components/learner/StudentAnalytics';
+import { EventInvites } from './components/learner/EventInvites';
+import { AcademicCalendar } from './components/calendar/AcademicCalendar';
 import { SubjectChooser } from './components/learner/SubjectChooser';
 import { SubjectEvaluation } from './components/learner/SubjectEvaluation';
 import { CvWizard } from './components/cv/CvWizard';
@@ -55,7 +58,7 @@ import { DesktopShell } from './components/layout/DesktopShell';
 
 
 /* ==================================================================
-   Njinji Career Guidance — Khetha NCAP mobile companion
+   Khetha Career Guidance — NCAP mobile companion
    Built against the DHET challenge brief. Section markers below map
    to the mandatory requirements:
      R1 NCAP reference alignment      R5 Personalised career journey
@@ -152,8 +155,9 @@ import { DesktopShell } from './components/layout/DesktopShell';
    Root — responsive across mobile, tablet and desktop
    ================================================================== */
 
-export default function NjinjiCareerGuidance() {
-  const { settings, setSettings, t } = useSettings();
+export default function KhethaCareerGuidance() {
+  const { settings, setSettings, t, hydrate: hydrateSettings, setThemeModeForSync } = useSettings();
+  const { mode: themeMode, setMode: setThemeMode } = useThemeContext();
   const {
     role, setRole, session, setSession, verifying, setVerifying,
   } = useAuth();
@@ -212,30 +216,81 @@ export default function NjinjiCareerGuidance() {
   const isGuest = !!session?.guest;
   // Dropping the guest session leaves `role` as student, so the auth screen is
   // what renders next — the learner picks up exactly where they were heading.
+  /* Consent is recorded server-side at sign-up and never asked again (see
+     AuthScreen.afterAuth). The optional items stay changeable here, because a
+     consent you cannot withdraw is not a consent. The whole set is re-sent —
+     the endpoint replaces rather than merges — and session state only moves
+     once the server has accepted it. */
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [consentError, setConsentError] = useState("");
+  const toggleConsent = async (key) => {
+    if (!session || isGuest) return;
+    const next = { ...session.consent, [key]: !session.consent?.[key], core: true };
+    setConsentSaving(true); setConsentError("");
+    try {
+      await saveMyConsent({
+        core: true,
+        ncap: !!next.ncap, notify: !!next.notify, research: !!next.research,
+        isMinor: !!session.ageGate?.minor,
+        guardianName: session.ageGate?.guardian?.name ?? null,
+        guardianRelation: session.ageGate?.guardian?.relation ?? null,
+        guardianContact: session.ageGate?.guardian?.contact ?? null,
+      });
+      setSession((s) => ({ ...s, consent: next }));
+    } catch (err) {
+      setConsentError(err.body?.error || "Could not save that change. Try again in a moment.");
+    } finally {
+      setConsentSaving(false);
+    }
+  };
+
   const enterGuest = () => { setRole("student"); setSession(GUEST_SESSION); };
   const leaveGuest = () => setSession(null);
 
-  /* Demo administrator: renders the admin screens from local data so they can
-     be shown without provisioning a real admin. Holds no Supabase session, so
-     every AdminOnly endpoint still refuses it. See data/demoAdmin.js. */
-  const isDemoAdmin = !!session?.demoAdmin;
-  const [demoApplications, setDemoApplications] = useState(DEMO_APPLICATIONS);
-  const enterDemoAdmin = () => {
+  /* Administrators sign in through their own screen (AdminSignIn), against a
+     real Supabase account that must also be an active row in the `admins`
+     table. The old demo-administrator mode that rendered these screens from
+     local fixtures is gone: it could never approve anything, because every
+     admin endpoint refused a caller holding no session, so it demonstrated
+     screens that did not work. */
+  const [adminSignIn, setAdminSignIn] = useState(false);
+  const enterAdmin = (adminSession) => {
+    setAdminSignIn(false);
     setRole("admin");
-    setSession(DEMO_ADMIN_SESSION);
+    setSession(adminSession);
     setTab("approvals");
   };
-  const decideDemoApplication = (id, status) =>
-    setDemoApplications((as) =>
-      as.map((a) => (a.id === id ? { ...a, status, decidedAt: new Date().toISOString() } : a))
-    );
 
   const {
     status: profileStatus, profileError, learner: realLearner,
     subjects: realSubjects, setSubjects: setRealSubjects,
     mathsIsPure: realMathsIsPure, setMathsIsPure: setRealMathsIsPure, createProfile,
-    refetch: refetchProfile, appProfile, saveAppProfile,
+    refetch: refetchProfile, appProfile, saveAppProfile, preferences,
   } = useMatriculantProfile({ enabled: !!session && !isGuest && role === "student" });
+
+  /* Declared preferences are hydrated once, the moment the profile arrives.
+     This is what stops the app re-asking questions the learner has already
+     answered, and what carries language, text size and notification choices
+     from their phone to a school computer. `preferences === undefined` means
+     the profile has not loaded yet; `null` means it loaded and there are none
+     saved, which is a legitimate state to hydrate (it marks the store ready so
+     later edits start persisting). */
+  const prefsSeeded = useRef(false);
+  useEffect(() => {
+    if (isGuest || preferences === undefined || prefsSeeded.current) return;
+    prefsSeeded.current = true;
+    hydrateSettings(preferences);
+    if (preferences?.themeMode) setThemeMode(preferences.themeMode);
+  }, [preferences, isGuest]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keeps the settings store's copy of the theme in step, so a theme change
+  // rides along with the next preferences save rather than needing its own.
+  useEffect(() => { setThemeModeForSync(themeMode); }, [themeMode, setThemeModeForSync]);
+
+  useEffect(() => {
+    if (session) return;
+    prefsSeeded.current = false;
+  }, [session]);
 
   const [guestSubjects, setGuestSubjects] = useState(GUEST_LEARNER.subjects);
   const [guestMathsIsPure, setGuestMathsIsPure] = useState(true);
@@ -282,19 +337,19 @@ export default function NjinjiCareerGuidance() {
   const isMentorOrAdmin = !!session && role !== "student";
 
   const { requests, create: createHelpRequest, respond: respondToHelpRequest, issueLetter } =
-    useHelpRequests({ enabled: !!session && !isGuest && !isDemoAdmin && (isMentorOrAdmin || hasProfile) });
+    useHelpRequests({ enabled: !!session && !isGuest && (isMentorOrAdmin || hasProfile) });
   const { applications, refetch: refetchApplications, approve: approveApplication, reject: rejectApplication } =
-    useMentorApplications({ enabled: !!session && !isGuest && !isDemoAdmin && role === "admin", scope: "admin" });
+    useMentorApplications({ enabled: !!session && !isGuest && role === "admin", scope: "admin" });
   const { applications: myApplications, refetch: refetchMyApplications } =
     useMentorApplications({ enabled: !!session && !isGuest && (role === "mentor" || role === "professional"), scope: "mine" });
   const { notifications: remoteNotifications, markAllRead: markAllNotificationsRead } =
-    useNotifications({ enabled: !!session && !isGuest && !isDemoAdmin });
+    useNotifications({ enabled: !!session && !isGuest });
 
   /* Admin screens read these, so demo mode swaps the source without the
      screens themselves knowing anything about it. */
-  const adminApplications = isDemoAdmin ? demoApplications : applications;
-  const approveApp = isDemoAdmin ? (id) => decideDemoApplication(id, "approved") : approveApplication;
-  const rejectApp = isDemoAdmin ? (id) => decideDemoApplication(id, "rejected") : rejectApplication;
+  const adminApplications = applications;
+  const approveApp = approveApplication;
+  const rejectApp = rejectApplication;
   const myApplication = myApplications[0] || null;
 
   /* Deadline/event reminders the learner triggers themselves (favouriting a
@@ -476,65 +531,14 @@ export default function NjinjiCareerGuidance() {
     markAllNotificationsRead();
   };
 
-  const a11yCss = `
-    @keyframes njinji-scan { from { top: 15%; } to { top: 78%; } }
-    .k-grad-green{background-image:linear-gradient(to bottom right,#005A36,#00432A)!important}
-    .k-fvr-D4AF37:focus-visible{--tw-ring-color:#D4AF37!important;outline-color:#D4AF37}
-    .k-fb-00784A:focus{border-color:#00784A!important}
-    .k-bg-E7F4EE{background-color:#E7F4EE!important}
-    .k-bg-FBF5E7{background-color:#FBF5E7!important}
-    .k-bg-FBEAE8{background-color:#FBEAE8!important}
-    .k-bg-EAEFF7{background-color:#EAEFF7!important}
-    .k-bg-005A36{background-color:#005A36!important}
-    .k-bg-B3261E{background-color:#B3261E!important}
-    .k-bg-1E3A6E{background-color:#1E3A6E!important}
-    .k-bg-00784A{background-color:#00784A!important}
-    .k-bg-D4AF37{background-color:#D4AF37!important}
-    .k-bg-F4E8C9{background-color:#F4E8C9!important}
-    .k-bg-00432A{background-color:#00432A!important}
-    .k-tx-005A36{color:#005A36!important}
-    .k-tx-6B5307{color:#6B5307!important}
-    .k-tx-9B1C14{color:#9B1C14!important}
-    .k-tx-1E3A6E{color:#1E3A6E!important}
-    .k-tx-B3261E{color:#B3261E!important}
-    .k-tx-00784A{color:#00784A!important}
-    .k-tx-D4AF37{color:#D4AF37!important}
-    .k-tx-0F172A{color:#0F172A!important}
-    .k-tx-BFE5D4{color:#BFE5D4!important}
-    .k-bd-00784A{border-color:#00784A!important}
-    .k-bd-005A36{border-color:#005A36!important}
-    .k-bd-E5A79F{border-color:#E5A79F!important}
-    .k-bd-00432A{border-color:#00432A!important}
-    .k-bd-E4CE8A{border-color:#E4CE8A!important}
-    .k-rg-A8DCC5{--tw-ring-color:#A8DCC5!important}
-    .k-rg-E4CE8A{--tw-ring-color:#E4CE8A!important}
-    .k-rg-F2CBC7{--tw-ring-color:#F2CBC7!important}
-    .k-rg-C3CFE4{--tw-ring-color:#C3CFE4!important}
-    .k-rg-00784A{--tw-ring-color:#00784A!important}
-    .k-ac-00784A{accent-color:#00784A!important}
-    .k-dis:disabled{background-color:#E2E8F0!important;background-image:none!important;color:#475569!important}
-    .k-dis-soft:disabled{opacity:.65}
-    .k-dis-tx:disabled{color:#64748B!important}
-    .njinji-hc .bg-white, .njinji-hc .bg-slate-50, .njinji-hc .bg-slate-100 { background-color: #FFFFFF !important; }
-    .njinji-hc [class*="k-bg-"], .njinji-hc [class*="k-grad-"] { color: #FFFFFF !important; }
-    .njinji-hc [class*="text-slate-6"], .njinji-hc [class*="text-slate-5"] { color: #000000 !important; }
-    .njinji-hc [class*="border-slate"] { border-color: #000000 !important; }
-    .njinji-hc [class*="ring-slate"] { --tw-ring-color: #000000 !important; }
-    .njinji-reduce *, .njinji-reduce *::before, .njinji-reduce *::after {
-      animation-duration: 0.001ms !important; transition-duration: 0.001ms !important;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
-    }
-    .njinji-shell :focus-visible { outline: 3px solid ${THEME.gold}; outline-offset: 2px; }
-    .k-scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
-    .k-scrollbar-none::-webkit-scrollbar { display: none; }
-  `;
-
+  // Brand utilities, the dark-mode bridge and the accessibility modes all live
+  // in theme/theme.css now. They used to be injected from here as a template
+  // string of hardcoded hex values, which is precisely what made dark mode
+  // impossible: every colour was baked in with !important.
   const shellClass = [
-    "njinji-shell",
-    settings.highContrast ? "njinji-hc" : "",
-    settings.reduceMotion ? "njinji-reduce" : "",
+    "khetha-shell",
+    settings.highContrast ? "khetha-hc" : "",
+    settings.reduceMotion ? "khetha-reduce" : "",
   ].join(" ");
 
   /* ---- shared content, rendered into either layout ----------------- */
@@ -610,17 +614,21 @@ export default function NjinjiCareerGuidance() {
         </div>
       )}
 
-      {!pendingRoleIssue && !role && (
+      {!pendingRoleIssue && !role && adminSignIn && (
+        <AdminSignIn onBack={() => setAdminSignIn(false)} onAuthenticated={enterAdmin} />
+      )}
+
+      {!pendingRoleIssue && !role && !adminSignIn && (
         <RoleSelector t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
-          onPick={(r) => { setRole(r); setTab(r === "admin" ? "approvals" : r === "student" ? "dashboard" : "workspace"); }} />
+          onAdmin={() => setAdminSignIn(true)}
+          onPick={(r) => { setRole(r); setTab(r === "student" ? "dashboard" : "workspace"); }} />
       )}
 
       {!pendingRoleIssue && role && !session && (
         <AuthScreen role={role} onBack={() => setRole(null)}
           t={t} lang={settings.lang} setLang={(l) => setSettings((s) => ({ ...s, lang: l }))}
           onGuest={enterGuest}
-          onDemoAdmin={enterDemoAdmin}
           onAuthenticated={(s) => resolveAccountRole(role, s)} />
       )}
 
@@ -656,11 +664,12 @@ export default function NjinjiCareerGuidance() {
       {session && (!isStudent || hasProfile) && route && renderOverlay()}
 
       {session && (!isStudent || hasProfile) && !route && tab === "approvals" && (
-        <AdminApprovals applications={adminApplications} onApprove={approveApp} onReject={rejectApp} />
+        <AdminApprovals applications={adminApplications} onApprove={approveApp} onReject={rejectApp}
+          currentUserId={session?.admin?.userId} />
       )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "analytics" && (
-        <AdminAnalytics data={isDemoAdmin ? DEMO_ANALYTICS : undefined} />
+        <AdminAnalytics />
       )}
 
       {session && (!isStudent || hasProfile) && !route && tab === "workspace" && (
@@ -673,6 +682,19 @@ export default function NjinjiCareerGuidance() {
           offline={settings.offline} aps={aps} eligibleCount={eligibleCount}
           onScan={() => setScanOpen(true)} scanned={scanned} onSms={() => setSmsOpen(true)}
           journey={journey} />
+      )}
+
+      {session && hasProfile && !route && tab === "progress" && (
+        <StudentAnalytics t={t} learner={learner} profile={profile} subjects={subjects}
+          mathsIsPure={mathsIsPure} aps={aps} journey={journey} go={go} isGuest={isGuest} />
+      )}
+
+      {session && hasProfile && !route && tab === "invites" && (
+        <EventInvites learner={learner} go={go} />
+      )}
+
+      {session && hasProfile && !route && tab === "calendar" && (
+        <AcademicCalendar learner={learner} onRemind={remindEvent} />
       )}
 
       {session && hasProfile && !route && tab === "aps" && (
@@ -749,6 +771,7 @@ export default function NjinjiCareerGuidance() {
           markAllRead={markAllRead} onSignOut={() => { setSession(null); setRole(null); setTab("dashboard"); setRoute(null); }}
           aps={aps} go={go} packs={packs} togglePack={togglePack}
           viewport={viewport} setViewport={setViewport}
+          onToggleConsent={toggleConsent} consentSaving={consentSaving} consentError={consentError}
           installable={!!installEvent} onInstall={install}
           onExportData={isStudent ? exportMyData : null} onDeleteResults={isStudent ? deleteMyResults : null} />
       )}
@@ -843,7 +866,6 @@ export default function NjinjiCareerGuidance() {
 
   return (
     <div className="min-h-screen w-full bg-slate-200">
-      <style>{a11yCss}</style>
       {layout === "desktop" ? desktopShell : mobileShell}
     </div>
   );
