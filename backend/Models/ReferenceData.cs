@@ -91,6 +91,34 @@ public class SaqaQualification
     public DateTime LastSyncedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>
+/// A real, named certification, learnership or trade route that does not
+/// require a matric (NSC) pass — Grade 9/10/11, ABET Level 4 or an NQF Level 1
+/// qualification is the actual entry requirement. Shown at the bottom of the
+/// careers directory for learners who won't or don't complete matric, so they
+/// still see a real path forward rather than nothing.
+///
+/// Hand-compiled from public regulator/SETA/institution sources (not scraped
+/// live, and not AI-generated) — see Source/SourceUrl on each row for the
+/// citation. Seeded via INoMatricCertificationSeedService, admin-triggered,
+/// the same provenance discipline as OfoCode.Source above.
+/// </summary>
+public class NoMatricCertification
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;       // "TVET / NCV", "Artisan trade", "SETA learnership", "Security (PSIRA)", "Bookkeeping", "First aid"
+    public string MinRequirement { get; set; } = string.Empty; // e.g. "Grade 9", "Grade 10", "No formal schooling required"
+    public int? NqfLevel { get; set; }
+    public string? DurationLabel { get; set; }                 // free text, e.g. "3 years", "6-12 months"
+    public string Summary { get; set; } = string.Empty;        // plain-language description
+    public string ProviderName { get; set; } = string.Empty;   // regulator/awarding body/college
+    public string? ProviderWebsite { get; set; }
+    public string SourceUrl { get; set; } = string.Empty;      // where this entry's facts were confirmed
+    public DateTime LastVerifiedAt { get; set; } = DateTime.UtcNow;
+    public int SortOrder { get; set; }
+}
+
 /// <summary>Tracks a scheduled/last-run ingest of an external source, for auditability.</summary>
 public class DataSyncLog
 {

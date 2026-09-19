@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<CourseSubjectRequirement> CourseSubjectRequirements => Set<CourseSubjectRequirement>();
     public DbSet<OfoCode> OfoCodes => Set<OfoCode>();
     public DbSet<SaqaQualification> SaqaQualifications => Set<SaqaQualification>();
+    public DbSet<NoMatricCertification> NoMatricCertifications => Set<NoMatricCertification>();
     public DbSet<DataSyncLog> DataSyncLogs => Set<DataSyncLog>();
 
     public DbSet<Mentor> Mentors => Set<Mentor>();
@@ -104,6 +105,8 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<SaqaQualification>().HasIndex(s => s.SaqaId).IsUnique().HasDatabaseName("saqa_qualifications_saqa_id_key");
         modelBuilder.Entity<SaqaQualification>().HasIndex(s => s.NqfLevel).HasDatabaseName("ix_saqa_qualifications_nqf_level");
+
+        modelBuilder.Entity<NoMatricCertification>().HasIndex(c => c.SortOrder).HasDatabaseName("ix_no_matric_certifications_sort_order");
 
         // One CV per learner, keyed on the Supabase user id — no surrogate key,
         // because there is never a second row to disambiguate.

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Khetha Career Guidance — Functional Specification</title>
+<style>
+  :root {
+    --green: #005A36;
+    --green-dark: #00432A;
+    --gold: #D4AF37;
+    --navy: #1E3A6E;
+    --red: #B3261E;
+    --ink: #0F172A;
+    --body: #334155;
+    --muted: #64748B;
+    --line: #E2E8F0;
+    --tint: #F8FAFC;
+    --tint-gold: #FBF5E7;
+    --tint-red: #FBEAE8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: var(--body);
+    font-size: 10.5pt;
+    line-height: 1.55;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { color: var(--ink); font-family: 'Segoe UI', Arial, sans-serif; }
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 60px;
+    page-break-after: always;
+    background: linear-gradient(160deg, var(--green) 0%, var(--green-dark) 100%);
+    color: white;
+  }
+  .cover .stripe { display:flex; height:6px; width:140px; border-radius:3px; overflow:hidden; margin-bottom:28px; }
+  .cover .stripe span { flex:1; }
+  .cover h1 { color: white; font-size: 34pt; margin: 0 0 6px 0; letter-spacing: -0.5px; }
+  .cover .sub { color: #BFE5D4; font-size: 13pt; margin-bottom: 40px; }
+  .cover .meta { color: #BFE5D4; font-size: 10pt; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 16px; max-width: 480px; }
+  .cover .meta div { margin-bottom: 4px; }
+  .cover .badge { display:inline-block; background: var(--gold); color: #1a1a1a; font-weight:700; font-size:9pt; padding: 4px 12px; border-radius: 999px; margin-bottom: 22px; letter-spacing: 0.5px; }
+
+  .page { padding: 10px 56px 30px 56px; }
+  .section { page-break-before: always; }
+  .section:first-of-type { page-break-before: auto; }
+
+  h2.h-num { font-size: 17pt; border-bottom: 3px solid var(--green); padding-bottom: 8px; margin-top: 0; margin-bottom: 18px; }
+  h3.h-num { font-size: 12.5pt; color: var(--green); margin-top: 26px; margin-bottom: 8px; }
+  h4 { font-size: 10.5pt; color: var(--ink); margin: 14px 0 4px 0; }
+
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin-bottom: 3px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px 0; font-size: 9.5pt; }
+  th { background: var(--green); color: white; text-align: left; padding: 6px 9px; font-weight: 600; }
+  td { padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--tint); }
+
+  .tag { display:inline-block; font-size: 8pt; font-weight:700; padding: 2px 8px; border-radius: 999px; margin-left:6px; }
+  .tag-real { background: #E7F4EE; color: var(--green); }
+  .tag-partial { background: var(--tint-gold); color: #6B5307; }
+  .tag-gap { background: var(--tint-red); color: #9B1C14; }
+
+  .callout { border-left: 4px solid var(--gold); background: var(--tint-gold); padding: 10px 14px; margin: 12px 0; font-size: 9.5pt; border-radius: 0 6px 6px 0; }
+  .callout.gap { border-left-color: var(--red); background: var(--tint-red); }
+  .callout.info { border-left-color: var(--navy); background: #EEF2FA; }
+  .callout b { color: var(--ink); }
+
+  .toc { padding: 4px 0; }
+  .toc a { text-decoration: none; color: var(--body); }
+  .toc-item { display:flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted var(--line); font-size: 10pt; }
+  .toc-item.l1 { font-weight: 700; color: var(--ink); margin-top: 10px; border-bottom: none; }
+
+  .role-pill { display:inline-block; font-size:8pt; font-weight:700; padding:2px 9px; border-radius:999px; color:white; margin-right:4px; }
+  .r-student { background: var(--green); }
+  .r-mentor { background: var(--navy); }
+  .r-admin { background: #1a1a1a; }
+
+  code { background: #F1F5F9; padding: 1px 5px; border-radius: 4px; font-size: 9pt; color: #0f172a; font-family: 'Consolas', monospace; }
+  .footer-note { color: var(--muted); font-size: 8.5pt; margin-top: 4px; font-style: italic; }
+  .glossary dt { font-weight: 700; color: var(--ink); margin-top: 8px; }
+  .glossary dd { margin: 2px 0 0 0; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <span class="badge">FUNCTIONAL SPECIFICATION</span>
+  <h1>Khetha Career Guidance</h1>
+  <div class="sub">DHET NCAP Career Guidance Platform — GovTech Hackathon 2026</div>
+  <div class="stripe"><span style="background:#00784A"></span><span style="background:#D4AF37"></span><span style="background:#1E3A6E"></span><span style="background:#B3261E"></span></div>
+  <div class="meta">
+    <div><b>Version:</b> 1.0</div>
+    <div><b>Date:</b> 19 September 2026</div>
+    <div><b>Prepared for:</b> Department of Higher Education &amp; Training — National Career Advice Portal (NCAP)</div>
+    <div><b>Scope:</b> Full application — student, mentor/professional and administrator experiences, backend API, and platform infrastructure</div>
+    <div><b>Basis:</b> Direct examination of the production codebase (frontend, backend, data model, configuration) as of this document's date. Every claim below is traceable to a specific file; nothing here is aspirational.</div>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- TOC -->
+<div class="section">
+<h2 class="h-num">Table of Contents</h2>
+<div class="toc">
+  <div class="toc-item l1"><span>1. Introduction</span><span></span></div>
+  <div class="toc-item"><span>1.1 Purpose</span></div>
+  <div class="toc-item"><span>1.2 Scope</span></div>
+  <div class="toc-item"><span>1.3 How to read this document</span></div>
+
+  <div class="toc-item l1"><span>2. System Overview</span></div>
+  <div class="toc-item"><span>2.1 What Khetha is</span></div>
+  <div class="toc-item"><span>2.2 Technology stack</span></div>
+  <div class="toc-item"><span>2.3 Deployment &amp; infrastructure</span></div>
+
+  <div class="toc-item l1"><span>3. Roles &amp; Access Control</span></div>
+
+  <div class="toc-item l1"><span>4. Authentication &amp; Account Lifecycle</span></div>
+
+  <div class="toc-item l1"><span>5. Consent, Privacy &amp; POPIA Compliance</span></div>
+
+  <div class="toc-item l1"><span>6. Learner Functional Requirements</span></div>
+  <div class="toc-item"><span>6.1 Onboarding &amp; profile setup</span></div>
+  <div class="toc-item"><span>6.2 Dashboard / Home</span></div>
+  <div class="toc-item"><span>6.3 APS Calculator</span></div>
+  <div class="toc-item"><span>6.4 Subject Chooser &amp; Subject Evaluation</span></div>
+  <div class="toc-item"><span>6.5 Career Choice &amp; Job Fit questionnaires</span></div>
+  <div class="toc-item"><span>6.6 Careers, Qualifications, Providers &amp; Advice directories</span></div>
+  <div class="toc-item"><span>6.7 CV Builder</span></div>
+  <div class="toc-item"><span>6.8 Mentor Hub (learner side)</span></div>
+  <div class="toc-item"><span>6.9 AI Advisor chat</span></div>
+  <div class="toc-item"><span>6.10 Academic Calendar &amp; Event Invites</span></div>
+  <div class="toc-item"><span>6.11 Profile, Settings &amp; Privacy controls</span></div>
+  <div class="toc-item"><span>6.12 Offline support &amp; PWA tools</span></div>
+
+  <div class="toc-item l1"><span>7. Mentor &amp; Professional Functional Requirements</span></div>
+  <div class="toc-item"><span>7.1 Verification &amp; onboarding</span></div>
+  <div class="toc-item"><span>7.2 Mentor Workspace</span></div>
+  <div class="toc-item"><span>7.3 Help requests &amp; messaging</span></div>
+  <div class="toc-item"><span>7.4 Recommendation letters</span></div>
+  <div class="toc-item"><span>7.5 Mentor Events</span></div>
+
+  <div class="toc-item l1"><span>8. Administrator Functional Requirements</span></div>
+  <div class="toc-item"><span>8.1 Admin sign-in &amp; provisioning</span></div>
+  <div class="toc-item"><span>8.2 Approvals queue</span></div>
+  <div class="toc-item"><span>8.3 Analytics</span></div>
+  <div class="toc-item"><span>8.4 Team management &amp; audit log</span></div>
+
+  <div class="toc-item l1"><span>9. Cross-Cutting Platform Features</span></div>
+  <div class="toc-item"><span>9.1 Notifications</span></div>
+  <div class="toc-item"><span>9.2 Internationalisation</span></div>
+  <div class="toc-item"><span>9.3 Theming</span></div>
+  <div class="toc-item"><span>9.4 Progressive Web App &amp; offline behaviour</span></div>
+
+  <div class="toc-item l1"><span>10. Data Model</span></div>
+  <div class="toc-item l1"><span>11. Backend API Surface</span></div>
+  <div class="toc-item l1"><span>12. Known Limitations, Gaps &amp; Recommendations</span></div>
+  <div class="toc-item l1"><span>Appendix A — Glossary</span></div>
+</div>
+</div>
+
+<!-- 1. INTRODUCTION -->
+<div class="section">
+<h2 class="h-num">1. Introduction</h2>
+
+<h3 class="h-num">1.1 Purpose</h3>
+<p>This document specifies what Khetha Career Guidance actually does today, for each of its four user roles, as implemented in the codebase. It is written to be read by reviewers, evaluators and new engineers who need an accurate picture of system behaviour without reading the source directly.</p>
+
+<h3 class="h-num">1.2 Scope</h3>
+<p>Covers the React/Vite frontend, the ASP.NET Core backend API, the Supabase-hosted Postgres database and authentication service, and the platform's deployment posture. Excludes internal code style, algorithmic implementation detail beyond what a functional description needs, and any roadmap items that exist only as intentions rather than code.</p>
+
+<h3 class="h-num">1.3 How to read this document</h3>
+<p>Every feature described here was confirmed by reading the relevant source file(s) directly — this is not a description of intended behaviour, product copy, or a pitch deck. Where a feature is incomplete, simulated, or makes a promise the code doesn't keep, it is labelled explicitly with one of these tags, matching the standard used throughout this project's own internal audits:</p>
+<p>
+  <span class="tag tag-real">CONFIRMED</span> fully implemented and backed by real logic/data &nbsp;
+  <span class="tag tag-partial">PARTIAL</span> implemented but incomplete, simulated, or unenforced in part &nbsp;
+  <span class="tag tag-gap">GAP</span> a claim made in the product (copy, UI text) that the code does not currently deliver
+</p>
+</div>
+
+<!-- 2. SYSTEM OVERVIEW -->
+<div class="section">
+<h2 class="h-num">2. System Overview</h2>
+
+<h3 class="h-num">2.1 What Khetha is</h3>
+<p>Khetha is a mobile-first Progressive Web App built for South African learners navigating the transition from Grade 9 subject choice through to Grade 12 university/TVET/funding applications, aligned to DHET's National Career Advice Portal (NCAP). It also serves three supporting roles: verified mentors and industry professionals who assist learners directly, and departmental administrators who approve and oversee that network.</p>
+
+<h3 class="h-num">2.2 Technology stack</h3>
+<table>
+<tr><th>Layer</th><th>Technology</th></tr>
+<tr><td>Frontend</td><td>React (Vite build), Tailwind-style utility CSS with a custom government colour theme, <code>vite-plugin-pwa</code> for installability/offline shell caching</td></tr>
+<tr><td>Backend</td><td>ASP.NET Core 8 Web API, Entity Framework Core (Npgsql provider, snake_case naming convention)</td></tr>
+<tr><td>Database &amp; Auth</td><td>Supabase — managed Postgres, and Supabase Auth for all sign-in methods (the backend never issues its own tokens; it validates Supabase-issued JWTs against Supabase's public key set)</td></tr>
+<tr><td>AI</td><td>Anthropic Claude (Haiku) for the Advisor chat's open-ended fallback; Gemini for one admin-only occupation-data enrichment job</td></tr>
+<tr><td>SMS</td><td>Twilio, as the SMS provider behind Supabase's phone-OTP sign-in (configuration in progress at time of writing)</td></tr>
+</table>
+
+<h3 class="h-num">2.3 Deployment &amp; infrastructure</h3>
+<p>The frontend deploys via GitHub Actions (FTP to cPanel hosting) on push to <code>main</code>. Two workflow files exist for this (<code>build.yml</code> and <code>deploy-frontend.yml</code>); <code>build.yml</code> duplicates build steps redundantly and appears to be leftover rather than authoritative — <span class="tag tag-gap">GAP</span> this should be confirmed with the team and the stale one retired.</p>
+<div class="callout gap"><b>Backend hosting could not be confirmed from the repository.</b> No reference to Azure App Service (or any other host) exists in application configuration, workflow files, or documentation. The repository's own <code>README.md</code> backend section is stale — it describes endpoints as "planned" that have long since been built, under different route names than it lists, and asserts the browser "never talks to Supabase directly," which contradicts the frontend's actual authentication code (it talks to Supabase directly for every sign-in method). Backend hosting details in this document should be verified against the actual hosting platform, not this repository.</div>
+</div>
+
+<!-- 3. ROLES -->
+<div class="section">
+<h2 class="h-num">3. Roles &amp; Access Control</h2>
+<p>Four roles exist: <span class="role-pill r-student">STUDENT</span> <span class="role-pill r-mentor">MENTOR</span> <span class="role-pill r-mentor">PROFESSIONAL</span> <span class="role-pill r-admin">ADMIN</span>. Student, mentor and professional are self-claimable at first sign-in; administrator access is never self-service — it is granted only by an existing administrator, or, for the very first administrator ever, by matching a configured bootstrap email on first sign-in (a path that closes permanently once one admin exists).</p>
+<p><span class="tag tag-real">CONFIRMED</span> An account is bound to its role permanently. The first successful role claim wins — a repeat claim (even a race between two simultaneous requests) is rejected and simply returns the account's actual role rather than changing it. Mentor and professional roles additionally require passing the verification flow (Section 7.1) before they can act as a mentor; student and admin do not require separate verification.</p>
+</div>
+
+<!-- 4. AUTH -->
+<div class="section">
+<h2 class="h-num">4. Authentication &amp; Account Lifecycle</h2>
+<p>Five sign-in methods exist, all via Supabase Auth directly from the browser — the backend is never involved in issuing credentials, only in validating the resulting token:</p>
+<table>
+<tr><th>Method</th><th>Status</th><th>Notes</th></tr>
+<tr><td>Email + password</td><td><span class="tag tag-real">CONFIRMED</span></td><td>Works with zero extra configuration. The only method with an explicit "Sign in / Create account" toggle, because Supabase will not silently create an account from a plain sign-in call the way the other methods do.</td></tr>
+<tr><td>Email one-time code</td><td><span class="tag tag-real">CONFIRMED</span></td><td>Passwordless; auto-creates the account on first use. A crash bug that broke every OTP verification (an uncaptured variable) has been fixed.</td></tr>
+<tr><td>Phone (SMS) one-time code</td><td><span class="tag tag-partial">PARTIAL</span></td><td>Code path is fixed and correct; SMS delivery depends on the Twilio configuration being completed and correctly registered for South African carrier delivery (see Section 12).</td></tr>
+<tr><td>Google OAuth</td><td><span class="tag tag-partial">PARTIAL</span></td><td>Fully wired; will show a clear "not set up yet" error until the Google provider is enabled in the Supabase dashboard and its redirect URLs are correctly allow-listed.</td></tr>
+<tr><td>Apple OAuth</td><td><span class="tag tag-partial">PARTIAL</span></td><td>Same status as Google.</td></tr>
+</table>
+<p>Google, Apple and phone sign-in all double as sign-up for a new user with no separate button — Supabase creates the account automatically the first time any of them succeeds. Only email+password needs an explicit choice between signing in and creating an account.</p>
+<p>Session persistence: once signed in, a learner stays signed in on the same device/browser indefinitely (Supabase's own long-lived, auto-refreshing session token), and the app restores their role and profile automatically on every reload rather than asking them to sign in again — this only re-triggers if they explicitly sign out, or if the underlying session token itself expires or is revoked.</p>
+</div>
+
+<!-- 5. CONSENT -->
+<div class="section">
+<h2 class="h-num">5. Consent, Privacy &amp; POPIA Compliance</h2>
+<p>Three consent items are collected at account creation: a mandatory core consent to store a career profile, and two optional consents (reminder notifications; anonymised use for research). A minor's date of birth is captured via a real date picker (not a self-declared age tick-box), and guardianship details — name, relationship, contact number, and an explicit confirmation that the guardian was shown and agreed — are required before a minor's account can proceed.</p>
+<p><span class="tag tag-real">CONFIRMED</span> Consent is recorded once, server-side, with a version number; a returning user is never re-asked unless the consent wording itself is later versioned up, in which case everyone is asked again. Every consent record write is logged to an audit trail.</p>
+<p><span class="tag tag-real">CONFIRMED</span> "Export my data" downloads the learner's actual backend record as JSON.</p>
+<p><span class="tag tag-gap">GAP</span> "Delete my results" clears only the learner's saved journey/results data (a single JSON field), not the account itself. The learner's profile row, subjects, consent record, messages, help requests and notifications all remain. This is a genuine improvement over the previous version (which didn't even persist the deletion server-side at all), but it is not a full "right to erasure" and should not be described as one without a companion account-deletion capability.</p>
+</div>
+
+<!-- 6. LEARNER -->
+<div class="section">
+<h2 class="h-num">6. Learner Functional Requirements</h2>
+
+<h3 class="h-num">6.1 Onboarding &amp; profile setup</h3>
+<p>Shown once, immediately after a student's first real sign-in. Collects full name, grade (9–12), province, and an optional school name. Grade 10–12 learners additionally enter their current subjects and percentages (with an option to speed this up via the report-card scanner, Section 6.12); Grade 9 learners skip subjects entirely and are pointed to Subject Chooser instead, since they have no NSC marks yet. A short preferences form (interests, career goals, desired education level, province, study mode) is captured at the same time. <span class="tag tag-real">CONFIRMED</span> All of this is persisted server-side against the learner's account, including grade, school and province as first-class fields rather than derived guesses.</p>
+
+<h3 class="h-num">6.2 Dashboard / Home</h3>
+<p>The landing screen shows the learner's current APS, a count of qualifications they're eligible for, and a 4-step journey completion tracker. It routes Grade 9 learners toward Subject Chooser and Grade 10–12 learners toward the APS Calculator, surfaces up to two unread notifications, and — for Grade 9 specifically — a preview of their top three recommended subject packages. Includes quick links to every major tool, a "browse careers by field" grid with live counts, and a shortcut to the report-card scanner and SMS summary.</p>
+
+<h3 class="h-num">6.3 APS Calculator</h3>
+<p><span class="tag tag-real">CONFIRMED</span> APS is computed as the sum of NSC achievement levels (1–7) for the learner's best six non-Life-Orientation subjects, matching the standard national APS methodology. A Maths Pure/Literacy toggle materially changes which qualifications are shown as eligible. A "what-if" slider per subject lets a learner see how a different mark would change their APS and eligibility in real time, with an NSC level-band reference table alongside it.</p>
+
+<h3 class="h-num">6.4 Subject Chooser &amp; Subject Evaluation</h3>
+<p>Subject Chooser (Grade 9→10 decision) is a four-step guided wizard: it explains the decision, lets the learner optionally narrow by interest area, collects Grade 9 marks, and returns a ranked list of the nine subject packages with a plain-language verdict (Strong / Within reach / Stretch), the specific gaps and strengths behind that verdict, and explicit warnings when a Mathematics or Natural Sciences mark puts a whole pathway at risk.</p>
+<p>Subject Evaluation is the Grade 10–12 equivalent: instead of choosing a pathway, it shows which single subject-mark improvement would unlock the most additional qualifications ("if you could lift one mark"), near-misses when no single lever helps, and a per-subject breakdown of what each one currently opens or blocks.</p>
+
+<h3 class="h-num">6.5 Career Choice &amp; Job Fit questionnaires</h3>
+<p><span class="tag tag-real">CONFIRMED</span> Career Choice is a 12-statement instrument built on the Holland/RIASEC interest model — the same model NCAP's own questionnaire uses — producing a three-letter interest code and a ranked list of matching careers. Job Fit is a 10-statement instrument scoring five work-context preferences (people/data/things/outdoors/routine) and matching them against each occupation's own context profile by distance, producing a percentage fit per career. Both results are saved to the learner's journey and referenced elsewhere in the app (e.g. the Advisor chat is told the learner's interest code as context).</p>
+
+<h3 class="h-num">6.6 Careers, Qualifications, Providers &amp; Advice directories</h3>
+<table>
+<tr><th>Directory</th><th>Data source</th><th>Notes</th></tr>
+<tr><td>Careers</td><td><span class="tag tag-real">Backend</span> — DHET's own OFO occupation catalogue</td><td>Public, browsable without an account; falls back to a small bundled offline dataset if the API is unreachable.</td></tr>
+<tr><td>Qualifications</td><td><span class="tag tag-partial">Static bundled data</span></td><td>Filterable by type, Maths gateway, and "I qualify" against the learner's live APS.</td></tr>
+<tr><td>Providers</td><td><span class="tag tag-partial">Static bundled data</span></td><td>Filterable by type/province, optional "closest to me" using device location.</td></tr>
+<tr><td>Advice / contact</td><td>Static outreach content <span class="tag tag-real">+ live mentor events</span></td><td>WhatsApp/callback/walk-in channels plus admin-approved upcoming mentor events, and grade-appropriate rotating FAQs.</td></tr>
+</table>
+
+<h3 class="h-num">6.7 CV Builder</h3>
+<p>A six-step guided CV wizard (contact, summary, education, experience, skills, languages/references) with a live completeness score and a single prioritised "fix this next" suggestion. Offers writing help throughout — opener prompts, action-verb lists, a one-click pull of subjects from the learner's own Khetha profile, and skill suggestions drawn from their saved career interests. Produces two applicant-tracking-system-safe templates (deliberately plain, single-column); export is via the browser's print-to-PDF, not an image. <span class="tag tag-real">CONFIRMED</span> A CV can be shared via a revocable, token-based public link with no login required to view it.</p>
+
+<h3 class="h-num">6.8 Mentor Hub (learner side)</h3>
+<p>A learner can search/filter the verified mentor and professional directory by role and province, and send a help request (goal, subject, and a statement of need) — their APS and marks are attached automatically from their own stored profile, never typed in by hand. Their own request history is visible read-only; they cannot accept or action their own requests. Once a mentor accepts, an in-app chat opens.</p>
+
+<h3 class="h-num">6.9 AI Advisor chat</h3>
+<p>A small set of instant, offline-safe scripted answers is tried first for common questions. Anything else falls through to a real AI-generated answer (Anthropic Claude), scoped by its own system prompt to South African subject/APS/career/funding topics and instructed to redirect anything outside that scope — legal, medical or safety questions — to the human Advice directory instead of answering them. If the AI call fails for any reason (offline, no key configured, network error), the chat degrades to a static helpful message rather than breaking. The chat's own language can be set independently of the rest of the app, across six languages.</p>
+
+<h3 class="h-num">6.10 Academic Calendar &amp; Event Invites</h3>
+<p>The calendar shows South Africa's academic-year holidays, terms, exam windows and application deadlines (with a provisional-dates disclaimer), overlaid with the learner's own accepted mentor sessions. Event Invites lists admin-approved mentor-run seminars, shadowing days, site visits and talks, split into "you're going" and "also on offer," with honest capacity messaging (a slot count is only shown when it's real) and race-safe accept/cancel against the server's live seat count.</p>
+
+<h3 class="h-num">6.11 Profile, Settings &amp; Privacy controls</h3>
+<p>Three tabs: Journey (stats and saved tool results), Saved (favourited careers/qualifications/providers), and Settings — which covers language, the shared preferences form, light/dark/system theme, accessibility (four text-size steps, high contrast, reduced motion, plain-language mode, read-aloud), offline/low-data controls, per-category notification toggles, and the privacy panel (consent toggles, export, delete — see Section 5).</p>
+
+<h3 class="h-num">6.12 Offline support &amp; PWA tools</h3>
+<p>The Offline Centre shows connection status, last-saved time, manual save and per-content-pack offline download, plus a snapshot of everything currently saved on-device. The SMS Summary tool compiles the learner's assessment results, qualifying courses with deadlines, and funding information into a single plain-text message short enough to send over basic SMS, intended to also be forwarded to a parent or guardian.</p>
+<div class="callout gap"><b><span class="tag tag-gap">GAP</span> The report-card scanner is a simulation.</b> It animates a scanning effect and then reveals pre-set example marks — the app is explicit about this in its own on-screen copy ("Optical character recognition is simulated in this build"). No real OCR or image recognition currently runs.</div>
+</div>
+
+<!-- 7. MENTOR -->
+<div class="section">
+<h2 class="h-num">7. Mentor &amp; Professional Functional Requirements</h2>
+
+<h3 class="h-num">7.1 Verification &amp; onboarding</h3>
+<p>A three-step application: identity (full name, SA ID/passport, ID document upload), professional context (institution/employer, field, subjects they can help with, a free-text experience claim, work email, optional professional-registration body and licence number, optional partner-organisation code, academic transcript upload), then a review-and-submit summary. The backend independently computes a fraud-risk score on submission and records it for admin review. Only one pending or approved application can exist per account at a time.</p>
+<p>On approval, the mentor is granted "verification tiers" reflecting what they actually proved: an ID tier if they uploaded an ID document, a qualification tier if they supplied a transcript or licence number. <span class="tag tag-gap">GAP</span> A third "partner-vetted" tier exists in the data model but is not reachable through the normal application flow — the partner code a mentor submits is deliberately not treated as proof of vetting, and no admin workflow was found that separately grants it. Until one exists, this tier is effectively dead.</p>
+
+<h3 class="h-num">7.2 Mentor Workspace</h3>
+<p>An approved mentor sees stat tiles (awaiting reply, accepted, letters issued), a filterable list of incoming help requests with the learner's stated goal, subject, marks and APS, and Accept/Decline actions — disabled entirely until their application is approved. Accepted requests surface an "issue a recommendation letter" action. The workspace also embeds the mentor's own event-hosting tools (Section 7.5).</p>
+
+<h3 class="h-num">7.3 Help requests &amp; messaging</h3>
+<p><span class="tag tag-real">CONFIRMED</span> A learner's APS and marks are snapshotted from their own stored profile server-side at request time — never trusted from the client. A mentor can only respond once per request (accept or decline). Messaging only opens once a request is accepted, and — this was specifically verified as still true and server-enforced, not a deprecated claim — every message body is redacted for sensitive content (e.g. contact details) on the server before it is ever stored, so a modified client cannot bypass it.</p>
+
+<h3 class="h-num">7.4 Recommendation letters</h3>
+<p>A mentor can issue a letter for an accepted request, choosing a strength (strong / qualified / factual) and writing free text, with a live preview and a reference number. <span class="tag tag-gap">GAP</span> Two promises made in the UI copy are not backed by code: a stated "three working days to respond" service level has no backend enforcement, and a warning that fabricating a letter risks "referral to the relevant council" has no automated flagging, reporting or enforcement path behind it.</p>
+
+<h3 class="h-num">7.5 Mentor Events</h3>
+<p>An approved, active mentor can request to host a seminar, shadowing day, site visit or talk, giving a title, description, the concrete impact for learners, timing (at least 48 hours' notice), venue/province or an online flag, and a capacity. New events start hidden from learners and only appear once an administrator approves them. Registration is protected against overbooking with a database row lock on the very last seat. <span class="tag tag-partial">PARTIAL</span> An "attended" field exists on each registration for post-event attendance tracking, but no feature was found that ever sets it — attendance marking is not yet built.</p>
+</div>
+
+<!-- 8. ADMIN -->
+<div class="section">
+<h2 class="h-num">8. Administrator Functional Requirements</h2>
+
+<h3 class="h-num">8.1 Admin sign-in &amp; provisioning</h3>
+<p>There is no administrator self-registration. The very first administrator is created only by matching a configured bootstrap email against a verified sign-in, and only while no administrator yet exists — that path closes permanently afterwards. Every subsequent administrator is granted individually by an existing one.</p>
+
+<h3 class="h-num">8.2 Approvals queue</h3>
+<p>Three tabs: mentor/professional applications (with risk-flag indicators and partner-vetted badges), events (requiring a written reason of at least five characters to decline, and an urgency flag for events starting within a week), and administrators (Section 8.4). Every approval or rejection here is written to the audit log.</p>
+
+<h3 class="h-num">8.3 Analytics</h3>
+<p><span class="tag tag-real">CONFIRMED — the strongest evidence of this project's own honesty discipline.</span> This screen was rebuilt after an earlier internal audit found several panels were entirely fabricated. Those panels (active-this-week usage, SMS-generated counts, offline-toggle rates, page views, and similar telemetry the platform never actually collected) were removed outright rather than backfilled with fake numbers. What remains today — total learners and province split, mean APS from real subject data, role counts, signup growth trends, mentor/application pipeline timing, device mix, and verification-tier mix — is backed by live database queries, and the screen states plainly, in its own text, that usage telemetry doesn't exist yet rather than pretending otherwise.</p>
+
+<h3 class="h-num">8.4 Team management &amp; audit log</h3>
+<p><span class="tag tag-real">CONFIRMED</span> An administrator can grant access to another account by email (with a required note) or revoke an existing administrator's access (with a required reason) — both write a full audit-log entry recording who did what, to whom, and why. Two safeguards are enforced server-side: an administrator cannot revoke their own access, and the last remaining active administrator cannot be revoked at all. The claim shown to every admin at sign-in — "every administrator action is recorded against your account in the audit log" — was independently verified true for every admin action examined (applications, events, admin grants/revokes) but was not exhaustively checked against literally every admin-surfaced action in the codebase.</p>
+</div>
+
+<!-- 9. CROSS-CUTTING -->
+<div class="section">
+<h2 class="h-num">9. Cross-Cutting Platform Features</h2>
+
+<h3 class="h-num">9.1 Notifications</h3>
+<p><span class="tag tag-real">CONFIRMED</span> Notifications are generated entirely server-side, as a direct consequence of real events — a new help request, a request being accepted or declined, a new message, a mentor event being approved or declined, or a learner confirming their own event registration — never invented client-side. They are read from and marked-read against the backend, with optimistic UI and automatic retry on failure.</p>
+
+<h3 class="h-num">9.2 Internationalisation</h3>
+<p>Six languages are supported for the main app interface: English, isiZulu, Setswana, Afrikaans, isiXhosa and Sesotho. The Advisor chat's language is deliberately independent of the app's display language, so a learner can read the interface in one language and converse with the advisor in another. <span class="tag tag-partial">PARTIAL</span> A rough line-count comparison between the English and isiZulu translation tables shows a noticeable gap, suggesting the non-English languages may not have full key-for-key coverage; this should be confirmed with a direct translation-key diff before claiming full parity across all six languages.</p>
+
+<h3 class="h-num">9.3 Theming</h3>
+<p>Light, dark and system-follow themes, persisted locally and also saved to the learner's account so the choice follows them across devices. A live listener updates the app automatically if the device's own theme changes while in "system" mode.</p>
+
+<h3 class="h-num">9.4 Progressive Web App &amp; offline behaviour</h3>
+<p><span class="tag tag-real">CONFIRMED</span> The app is installable (native install prompt on Android/Chrome, guided manual instructions on iOS/Safari) and precaches its own application shell for offline use. API responses are deliberately excluded from that cache by design — the app has its own explicit, opt-in offline data strategy instead, specifically so a learner is never silently shown stale personal data by the service worker.</p>
+</div>
+
+<!-- 10. DATA MODEL -->
+<div class="section">
+<h2 class="h-num">10. Data Model</h2>
+<table>
+<tr><th>Entity</th><th>Represents</th></tr>
+<tr><td>Matriculant</td><td>The learner's core profile — identity, grade, school, province, date of birth, and their subjects/marks</td></tr>
+<tr><td>LearnerPreferences</td><td>Declared interests, goals, study mode, language, theme and notification choices</td></tr>
+<tr><td>UserConsent</td><td>The versioned POPIA consent record, including guardian details for minors</td></tr>
+<tr><td>CvDocument</td><td>A learner's CV content, chosen template, completeness score, and share token</td></tr>
+<tr><td>Mentor</td><td>An approved mentor/professional's public-facing profile and verification tiers</td></tr>
+<tr><td>HelpRequest</td><td>A learner's request to a specific mentor, and its accept/decline lifecycle</td></tr>
+<tr><td>Notification / AuditLog</td><td>Per-user notifications, and the immutable record of every audited action</td></tr>
+<tr><td>MentorEvent / MentorEventRegistration</td><td>A mentor-hosted session and each learner's RSVP to it</td></tr>
+<tr><td>Admin</td><td>A platform administrator grant, including who granted or revoked it and when</td></tr>
+<tr><td>OfoCode</td><td>DHET's official occupation classification reference data</td></tr>
+<tr><td>University / Course</td><td>An institution and the qualifications it offers</td></tr>
+</table>
+</div>
+
+<!-- 11. API SURFACE -->
+<div class="section">
+<h2 class="h-num">11. Backend API Surface</h2>
+<p>Eighteen controllers make up the API. Authentication is via Supabase-issued JWTs, validated against Supabase's own published signing keys (no shared secret held by the backend). Cross-origin access is restricted to an explicit, configured allow-list of frontend origins.</p>
+<table>
+<tr><th>Controller</th><th>Responsibility</th></tr>
+<tr><td>AccountController</td><td>Role claiming, consent read/write</td></tr>
+<tr><td>MatriculantsController</td><td>The learner's own profile, subjects, preferences, data export/delete</td></tr>
+<tr><td>ApsController / CoursesController / QualificationsController</td><td>APS scoring and course/qualification matching &amp; search</td></tr>
+<tr><td>OccupationsController</td><td>Public careers directory, sourced from the OFO catalogue, plus admin import/enrichment</td></tr>
+<tr><td>CvController</td><td>CV storage and public share links</td></tr>
+<tr><td>MentorApplicationsController</td><td>Mentor/professional verification applications and risk scoring</td></tr>
+<tr><td>MentorsController</td><td>The (access-controlled) mentor directory</td></tr>
+<tr><td>HelpRequestsController / MessagesController</td><td>Learner–mentor request lifecycle and redacted messaging</td></tr>
+<tr><td>RecommendationLettersController</td><td>Mentor-issued recommendation letters</td></tr>
+<tr><td>MentorEventsController</td><td>Mentor-hosted events and learner registrations</td></tr>
+<tr><td>NotificationsController</td><td>Per-user notifications</td></tr>
+<tr><td>AdvisorController</td><td>The AI Advisor's real-AI fallback</td></tr>
+<tr><td>SmsSummaryController</td><td>Server-side generation of the SMS summary text (does not send SMS itself)</td></tr>
+<tr><td>AdminController / AdminAccountController / AdminAnalyticsController</td><td>Approvals, admin account info, and platform analytics</td></tr>
+</table>
+</div>
+
+<!-- 12. LIMITATIONS -->
+<div class="section">
+<h2 class="h-num">12. Known Limitations, Gaps &amp; Recommendations</h2>
+<p>Presented here in one place for visibility, rather than only inline, so nothing is missed:</p>
+<div class="callout gap"><b>Account deletion is partial, not complete.</b> "Delete my results" clears saved journey data only — the account, subjects, consent record and mentor-network history all remain. A genuine right-to-erasure endpoint does not yet exist.</div>
+<div class="callout gap"><b>The report-card OCR scanner is a simulation</b>, openly labelled as such in-app, revealing pre-set example data rather than reading a real photo.</div>
+<div class="callout gap"><b>The "partner-vetted" mentor verification tier is unreachable</b> through the self-service application flow as it stands, and no admin tool was found to grant it separately.</div>
+<div class="callout gap"><b>Two mentor-facing promises are copy-only:</b> a stated three-working-day letter response time, and a stated consequence ("referral to the relevant council") for a fabricated recommendation letter. Neither is enforced in code.</div>
+<div class="callout gap"><b>Event attendance tracking is half-built.</b> The data field exists; nothing in the product sets it.</div>
+<div class="callout"><b><span class="tag tag-partial">PARTIAL</span> Twilio SMS delivery</b> for phone sign-in was being actively configured at the time of writing; South African carriers are known to filter unregistered sender numbers, so delivery should be confirmed with a real test message before relying on it.</div>
+<div class="callout"><b><span class="tag tag-partial">PARTIAL</span> Translation coverage</b> across the five non-English languages has not been confirmed key-for-key against English; a direct diff is recommended before asserting full parity.</div>
+<div class="callout info"><b>Documentation drift:</b> this repository's own <code>README.md</code> backend section describes the API as substantially unbuilt and makes an incorrect claim about how authentication reaches Supabase. It should not be used as a reference for either topic until updated — this specification supersedes it for those purposes.</div>
+<div class="callout info"><b>Backend hosting is not evidenced in the repository</b> and should be confirmed directly against the actual hosting platform rather than assumed from any file here.</div>
+</div>
+
+<!-- APPENDIX -->
+<div class="section">
+<h2 class="h-num">Appendix A — Glossary</h2>
+<dl class="glossary">
+<dt>APS (Admission Point Score)</dt><dd>South Africa's standard university/TVET admission scoring system, derived from NSC subject achievement levels.</dd>
+<dt>DHET</dt><dd>Department of Higher Education and Training.</dd>
+<dt>NCAP</dt><dd>National Career Advice Portal — the DHET service this platform aligns to.</dd>
+<dt>NSC</dt><dd>National Senior Certificate — South Africa's matric qualification.</dd>
+<dt>NSFAS</dt><dd>National Student Financial Aid Scheme.</dd>
+<dt>OFO</dt><dd>Organising Framework for Occupations — South Africa's official occupation classification.</dd>
+<dt>POPIA</dt><dd>Protection of Personal Information Act — South Africa's data protection law.</dd>
+<dt>RIASEC</dt><dd>Holland's occupational interest model (Realistic, Investigative, Artistic, Social, Enterprising, Conventional) underlying the Career Choice questionnaire.</dd>
+<dt>TVET</dt><dd>Technical and Vocational Education and Training college.</dd>
+</dl>
+</div>
+
+</div>
+</body>
+</html>
