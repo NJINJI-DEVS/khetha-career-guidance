@@ -3,42 +3,58 @@
 
 import { useState } from 'react';
 import {
-  ShieldCheck, Plug, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
+  ShieldCheck, Languages, Accessibility, Type, Contrast, RefreshCw, Info, WifiOff,
   BellRing, FileDown, Trash2, LogOut, Bell, Heart, ClipboardList, ChevronRight, Volume2, Users,
+  Settings, Pencil, Route, Monitor, Download, SunMoon, Compass,
 } from 'lucide-react';
+import { Avatar, ProfileEditor } from './ProfileEditor';
 import { occById } from '../../data/occupations';
 import { qualById } from '../../data/qualifications';
 import { providerById } from '../../data/providers';
 import { LANGUAGES } from '../../data/i18n';
+import { VIEWPORTS } from '../../data/viewports';
 import { CONSENT_ITEMS } from '../../data/auth';
 import { Pill } from '../ui/Pill';
 import { EmptyState } from '../ui/EmptyState';
 import { SectionTitle } from '../ui/SectionTitle';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { PreferencesForm } from '../settings/PreferencesForm';
+import { useThemeContext } from '../../context/ThemeContext';
 
 /* ==================================================================
    R5 / R6 / R7 / A2: Me — journey, saved, settings, privacy
    ================================================================== */
 
-export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack }) {
+export function MeScreen({ t, session, profile, setProfile, settings, setSettings, notifications, markAllRead, onSignOut, aps, go, packs, togglePack, viewport, setViewport, installable, onInstall, onExportData, onDeleteResults, onToggleConsent, consentSaving, consentError }) {
   const [tab, setTab] = useState("journey");
+  const { mode: themeMode, setMode: setThemeMode, theme: resolvedTheme } = useThemeContext();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [privacyError, setPrivacyError] = useState("");
+  const shownName = profile.displayName || session.identity;
   const favCareers = profile.favourites.filter((id) => occById[id]);
   const favQuals = profile.favourites.filter((id) => qualById[id]);
   const favProviders = profile.favourites.filter((id) => providerById[id]);
 
   const tabs = [
-    { key: "journey", label: t("myJourney") },
-    { key: "saved", label: `${t("saved")} (${profile.favourites.length})` },
-    { key: "settings", label: t("settings") },
+    { key: "journey", label: t("myJourney"), icon: Route },
+    { key: "saved", label: `${t("saved")} (${profile.favourites.length})`, icon: Heart },
+    { key: "settings", label: t("settings"), icon: Settings },
   ];
 
   return (
     <div className="p-4 pb-6">
       <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl k-bg-005A36 text-lg font-bold text-white">
-          {(session.identity || "K").slice(0, 2).toUpperCase()}
-        </span>
+        <Avatar name={shownName} avatar={profile.avatar} size={56} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-slate-900">{session.identity}</p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-base font-semibold text-slate-900">{shownName}</p>
+            <button onClick={() => setEditorOpen(true)} aria-label="Edit your profile"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 ring-1 ring-slate-200">
+              <Pencil className="h-3 w-3" />
+            </button>
+          </div>
           <p className="text-xs text-slate-600">
             {session.guest
               ? "Guest — nothing stored off this device"
@@ -46,19 +62,23 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Pill tone="green" icon={ShieldCheck}>2-step on</Pill>
-            {session.consent?.ncap && <Pill tone="blue" icon={Plug}>NCAP synced</Pill>}
             {session.ageGate?.minor && <Pill tone="gold" icon={Users}>Guardian consent on file</Pill>}
           </div>
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        {tabs.map((x) => (
-          <button key={x.key} onClick={() => setTab(x.key)}
-            className={`rounded-lg px-2 py-2 text-[11px] font-semibold transition-colors ${
-              tab === x.key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"
-            }`}>{x.label}</button>
-        ))}
+        {tabs.map((x) => {
+          const Icon = x.icon;
+          return (
+            <button key={x.key} onClick={() => setTab(x.key)}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition-colors ${
+                tab === x.key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"
+              }`}>
+              <Icon className="h-3.5 w-3.5 shrink-0" />{x.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ---------------- journey ---------------- */}
@@ -204,6 +224,79 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Compass className="h-4 w-4" />What you're looking for
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+              Saved to your account, so you are never asked again and these follow you to any device you sign in on.
+              Change them whenever you like.
+            </p>
+            <div className="mt-3">
+              <PreferencesForm value={settings} onChange={(next) => setSettings((s) => ({ ...s, ...next }))} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <SunMoon className="h-4 w-4" />Appearance
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+              System follows whatever your phone is set to, including when it switches to dark on battery saver.
+              Choose Light or Dark to override that.
+            </p>
+            <div className="mt-3">
+              <ThemeToggle mode={themeMode} setMode={setThemeMode} />
+            </div>
+            {themeMode === "system" && (
+              <p className="mt-2 text-[11px] text-slate-600">
+                Currently showing {resolvedTheme === "dark" ? "dark" : "light"}, following your device.
+              </p>
+            )}
+          </div>
+
+          {/* Preview layout — moved here from a floating bar that covered the
+              bottom navigation and made the tabs underneath unclickable. */}
+          {setViewport && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Monitor className="h-4 w-4" />Preview layout
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                Auto follows your screen size. The others force a layout, which is useful for showing the app on a
+                projector or checking a phone view from a laptop.
+              </p>
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {VIEWPORTS.map((v) => {
+                  const Icon = v.icon;
+                  return (
+                    <button key={v.key} onClick={() => setViewport(v.key)} aria-pressed={viewport === v.key}
+                      className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors ${
+                        viewport === v.key ? "k-bg-005A36 text-white" : "bg-slate-100 text-slate-700"
+                      }`}>
+                      <Icon className="h-3.5 w-3.5" />{v.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {installable && (
+            <button onClick={onInstall}
+              className="flex w-full items-center gap-3 rounded-2xl border border-dashed k-bd-00784A k-bg-E7F4EE p-4 text-left">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl k-bg-005A36 text-white">
+                <Download className="h-5 w-5" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold k-tx-005A36">Install Khetha on this device</span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-600">
+                  Adds it to your home screen and lets it open full screen, offline.
+                </span>
+              </span>
+            </button>
+          )}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <Accessibility className="h-4 w-4" />{t("accessibility")}
             </p>
             <div className="mt-3 space-y-3">
@@ -282,7 +375,7 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
               <BellRing className="h-4 w-4" />{t("notifications")}
             </p>
             {[
-              { key: "notifyDeadlines", label: "Application deadlines", note: "Two weeks and three days before each closing date." },
+              { key: "notifyDeadlines", label: "Application deadlines", note: "Confirms the closing date the moment you save a qualification." },
               { key: "notifyEvents", label: "Events in my province", note: "Career expos, open days and workshops." },
               { key: "notifyNsfas", label: "NSFAS and funding dates", note: "Opening and closing of the funding window." },
             ].map((o) => (
@@ -299,52 +392,81 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
             ))}
           </div>
 
-          {/* A1 / A2 */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <Plug className="h-4 w-4" />NCAP connection
-            </p>
-            <div className="mt-3 space-y-2 text-[11px]">
-              {[
-                ["Status", session.consent?.ncap ? "Connected" : "Not connected"],
-                ["Endpoint", "api.careerhelp.org.za/v1"],
-                ["Last sync", "Today, 06:14"],
-                ["Conflicts", "None — NCAP record is the source of truth"],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between gap-3">
-                  <span className="text-slate-600">{k}</span>
-                  <span className="font-medium text-slate-900">{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <ShieldCheck className="h-4 w-4" />{t("privacyConsent")}
             </p>
+            {session.consentOnFile === false ? (
+              <p className="mt-1.5 rounded-xl k-bd-E4CE8A k-bg-FBF5E7 border p-3 text-[11px] leading-relaxed text-slate-700">
+                <span className="font-semibold k-tx-6B5307">We have not recorded your privacy choices yet. </span>
+                This account was created before we started keeping them. Set the optional ones below whenever you
+                like — nothing optional is switched on until you say so.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                You were asked these once when you created your account. Change any of the optional ones here and it
+                is saved straight away.
+              </p>
+            )}
             <div className="mt-3 space-y-2.5">
-              {CONSENT_ITEMS.map((c) => (
-                <div key={c.key} className="flex items-center gap-3">
-                  <span className="flex-1 text-xs text-slate-700">{c.label}</span>
-                  <Pill tone={session.consent?.[c.key] ? "green" : "slate"}>
-                    {session.consent?.[c.key] ? "Allowed" : "Off"}
-                  </Pill>
+              {CONSENT_ITEMS.map((c) => {
+                const on = !!session.consent?.[c.key];
+                return (
+                  <div key={c.key} className="flex items-center gap-3">
+                    <span className="flex-1 text-xs text-slate-700">{c.label}</span>
+                    {c.required ? (
+                      <Pill tone="slate">Required</Pill>
+                    ) : (
+                      <button
+                        onClick={() => onToggleConsent?.(c.key)}
+                        disabled={consentSaving}
+                        role="switch" aria-checked={on}
+                        aria-label={`${c.label}: ${on ? "allowed" : "off"}`}
+                        className="flex items-center gap-2 k-dis-soft">
+                        <span className="text-[11px] font-medium text-slate-600">{on ? "Allowed" : "Off"}</span>
+                        <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                          on ? "k-bg-005A36" : "bg-slate-300"
+                        }`}>
+                          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                            on ? "left-[18px]" : "left-0.5"
+                          }`} />
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {consentError && <p className="mt-2 text-[11px] k-tx-9B1C14">{consentError}</p>}
+            {onExportData && onDeleteResults ? (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button disabled={exporting}
+                    onClick={async () => {
+                      setPrivacyError(""); setExporting(true);
+                      try { await onExportData(); }
+                      catch (err) { setPrivacyError(err.message || "Couldn't export your data. Try again."); }
+                      finally { setExporting(false); }
+                    }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900 k-dis-tx">
+                    <FileDown className="h-3.5 w-3.5" />{exporting ? "Preparing…" : t("exportData")}
+                  </button>
+                  <button disabled={deleting}
+                    onClick={async () => {
+                      setPrivacyError(""); setDeleting(true);
+                      try { await onDeleteResults(); }
+                      catch (err) { setPrivacyError(err.message || "Couldn't delete your results. Try again."); }
+                      finally { setDeleting(false); }
+                    }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg k-bg-FBEAE8 py-2 text-[11px] font-semibold k-tx-9B1C14 k-dis-tx">
+                    <Trash2 className="h-3.5 w-3.5" />{deleting ? "Deleting…" : t("deleteResults")}
+                  </button>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 py-2 text-[11px] font-semibold text-slate-900">
-                <FileDown className="h-3.5 w-3.5" />{t("exportData")}
-              </button>
-              <button
-                onClick={() => setProfile((p) => ({ ...p, favourites: [], careerChoice: null, jobFit: null, subjectResult: null }))}
-                className="flex items-center justify-center gap-1.5 rounded-lg k-bg-FBEAE8 py-2 text-[11px] font-semibold k-tx-9B1C14">
-                <Trash2 className="h-3.5 w-3.5" />{t("deleteResults")}
-              </button>
-            </div>
+                {privacyError && <p className="mt-2 text-[11px] k-tx-9B1C14">{privacyError}</p>}
+              </>
+            ) : null}
             <p className="mt-3 text-[11px] leading-relaxed text-slate-600">
-              Data is encrypted in transit and at rest and stored in South Africa. Deleting your results is immediate
+              Data is encrypted in transit and at rest. Deleting your results clears them from our servers immediately
               and cannot be undone.
             </p>
           </div>
@@ -355,10 +477,19 @@ export function MeScreen({ t, session, profile, setProfile, settings, setSetting
           </button>
 
           <p className="text-center text-[11px] leading-relaxed text-slate-600">
-            Njinji Career Guidance is a demonstration built by Njinjicom against the DHET Khetha NCAP challenge.
+            Khetha Career Guidance is a demonstration built by Njinjicom against the DHET Khetha NCAP challenge.
             Course, provider and event data is illustrative — confirm with the institution before applying.
           </p>
         </div>
+      )}
+
+      {editorOpen && (
+        <ProfileEditor
+          name={shownName}
+          avatar={profile.avatar}
+          onClose={() => setEditorOpen(false)}
+          onSave={(patch) => setProfile((p) => ({ ...p, ...patch }))}
+        />
       )}
     </div>
   );

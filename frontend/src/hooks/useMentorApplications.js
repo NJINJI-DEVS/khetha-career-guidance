@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  submitMentorApplication, getMyMentorApplications, getAdminMentorApplications,
+  submitMentorApplication, getMyMentorApplications, getAllMentorApplications,
   approveMentorApplication, rejectMentorApplication,
 } from '../lib/api';
 
-// `scope: "admin"` lists pending applications and decision history (AdminOnly);
-// `scope: "mine"` lists the caller's own submitted applications.
+// `scope: "admin"` lists EVERY application, decided or not (AdminOnly on the
+// backend); `scope: "mine"` lists the caller's own submitted applications.
+//
+// Admin scope used to fetch only pending, which is why approving an application
+// made it disappear instead of moving to the Approved tab — that tab, and
+// Rejected, could never show anything at all.
 export function useMentorApplications({ enabled, scope }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +20,7 @@ export function useMentorApplications({ enabled, scope }) {
   const refetch = useCallback(async () => {
     if (!enabled) return;
     const current = ++generation.current;
-    const fetcher = scope === 'admin' ? getAdminMentorApplications : getMyMentorApplications;
+    const fetcher = scope === 'admin' ? getAllMentorApplications : getMyMentorApplications;
     try {
       const data = await fetcher();
       if (current === generation.current) { setApplications(data); setError(null); }

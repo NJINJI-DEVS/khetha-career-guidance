@@ -8,9 +8,11 @@
 import { useState } from 'react';
 import { Plus, Trash2, Loader2, AlertTriangle, Camera } from 'lucide-react';
 import { SUBJECT_LABELS, SUBJECT_CATEGORIES } from '../../data/subjects';
+import { PROVINCES } from '../../data/provinces';
 import { Screen } from '../ui/Screen';
 import { SectionTitle } from '../ui/SectionTitle';
 import { OcrScanModal } from '../learner/OcrScanModal';
+import { PreferencesForm } from '../settings/PreferencesForm';
 
 // What the simulated scan "reads" off a report card. Every label matches a
 // SUBJECT_LABELS value so the rows drop straight into the selects below.
@@ -24,14 +26,11 @@ const MOCK_SCAN = [
   { label: "Life Orientation", pct: 79 },
 ];
 
-const PROVINCES = [
-  "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo",
-  "Mpumalanga", "Northern Cape", "North West", "Western Cape",
-];
+const GRADE_TO_LEVEL = { 9: 'grade9', 10: 'grade10', 11: 'grade11', 12: 'matric' };
 
 const SUBJECT_OPTIONS = Object.values(SUBJECT_LABELS);
 
-export function OnboardingScreen({ onSubmit, onSignOut }) {
+export function OnboardingScreen({ onSubmit, onSignOut, dateOfBirth }) {
   const [fullName, setFullName] = useState('');
   const [grade, setGrade] = useState(12);
   const [province, setProvince] = useState(PROVINCES[2]);
@@ -41,6 +40,12 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
   const [error, setError] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
   const [scanned, setScanned] = useState(false);
+  // Seeded from what the profile fields already say, so a learner is not asked
+  // for their province twice on the same screen.
+  const [preferences, setPreferences] = useState({
+    fieldsOfInterest: [], careerGoals: [], educationLevel: null,
+    preferredProvince: null, studyMode: 'any', maxTravelKm: null,
+  });
 
   const needsSubjects = grade >= 10;
 
@@ -63,7 +68,15 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
         grade,
         school: school.trim() || null,
         province,
+        dateOfBirth: dateOfBirth || null,
         subjects: needsSubjects ? subjects : [],
+        preferences: {
+          ...preferences,
+          // Grade is already known from the field above; mirroring it here
+          // means the preferences record stands on its own.
+          educationLevel: preferences.educationLevel || GRADE_TO_LEVEL[grade] || null,
+          preferredProvince: preferences.preferredProvince || province,
+        },
       });
     } catch (err) {
       setError(err.message || 'Something went wrong saving your profile.');
@@ -105,6 +118,14 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
             placeholder="Your school's name"
             className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 k-fb-00784A focus:outline-none focus-visible:ring-2 k-fvr-D4AF37" />
         </div>
+
+        {dateOfBirth && (
+          <p className="rounded-xl bg-slate-100 px-3 py-2.5 text-xs text-slate-600">
+            Date of birth: <span className="font-semibold text-slate-900">
+              {new Date(dateOfBirth).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
+            </span> — captured when you signed up.
+          </p>
+        )}
 
         {needsSubjects ? (
           <div>
@@ -160,6 +181,20 @@ export function OnboardingScreen({ onSubmit, onSignOut }) {
             (under Tools) to work out your Grade 10 package from your Grade 9 marks.
           </p>
         )}
+
+        {/* Captured once, here, and saved with the profile. Everything in this
+            block is optional — a learner who skips it gets a working app, just
+            a less well-ordered one — but asking now is what makes it possible
+            never to ask again. */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm font-semibold text-slate-900">What are you hoping to find?</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+            Optional, and you can change any of it later in Settings. We ask once so you are not asked again.
+          </p>
+          <div className="mt-3">
+            <PreferencesForm value={preferences} onChange={setPreferences} />
+          </div>
+        </div>
 
         {error && (
           <p className="flex items-start gap-1.5 text-xs k-tx-9B1C14">

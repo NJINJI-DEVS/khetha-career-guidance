@@ -3,15 +3,36 @@
 
 import { ChevronRight, ShieldCheck, Eye } from 'lucide-react';
 import { ROLES } from '../../data/roles';
+
+// Administrator is not something anyone joins as — the rights are granted by
+// another administrator against a staff account, and the old card led to a
+// sign-in that could never succeed. It lives behind the discreet shield below
+// instead, where staff know to look and learners are not invited to try.
+const JOINABLE_ROLES = Object.values(ROLES).filter((r) => r.key !== 'admin');
 import { Pill } from '../ui/Pill';
 import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
-import { LanguagePicker } from '../ui/LanguagePicker';
+import { LanguageDropdown } from '../ui/LanguageDropdown';
 
-export function RoleSelector({ t, lang, setLang, onPick, onGuest }) {
+export function RoleSelector({ t, lang, setLang, onPick, onGuest, onAdmin }) {
   return (
-    <div className="flex min-h-full flex-col px-5 pb-6 pt-6">
-      <div className="flex items-center gap-3">
-        <DhetArms className="h-14" />
+    <div className="flex min-h-full flex-col px-5 pb-6 pt-4">
+      {/* Utility row: language and staff sign-in, in their own line so the
+          departmental identity below keeps its fixed proportions. Putting these
+          beside the coat of arms made the row wrap on a narrow phone and pushed
+          the national colour rule out of place. */}
+      <div className="flex items-center justify-end gap-2">
+        <LanguageDropdown t={t} lang={lang} setLang={setLang} />
+        {onAdmin && (
+          <button onClick={onAdmin} title="Administrator sign-in"
+            aria-label="Administrator sign-in"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-slate-200 transition-colors hover:bg-slate-900 hover:text-white">
+            <ShieldCheck className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <DhetArms className="h-14 shrink-0" />
         <div className="leading-none">
           <p className="text-[15px] font-semibold lowercase leading-tight tracking-tight text-slate-900">
             higher education<br />&amp; training
@@ -28,10 +49,6 @@ export function RoleSelector({ t, lang, setLang, onPick, onGuest }) {
         <span className="flex-1 k-bg-1E3A6E" /><span className="flex-1 k-bg-B3261E" />
       </div>
 
-      <div className="mt-5">
-        <LanguagePicker t={t} lang={lang} setLang={setLang} />
-      </div>
-
       <h2 className="mt-5 text-xl font-bold tracking-tight text-slate-900">{t("howJoining")}</h2>
       <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
         This decides what the app shows you. Mentors and professionals go through verification before any learner
@@ -39,7 +56,7 @@ export function RoleSelector({ t, lang, setLang, onPick, onGuest }) {
       </p>
 
       <div className="mt-6 grid gap-2.5">
-        {Object.values(ROLES).filter((r) => r.key !== 'admin').map((r) => {
+        {JOINABLE_ROLES.map((r) => {
           const Icon = r.icon;
           return (
             <button key={r.key} onClick={() => onPick(r.key)}

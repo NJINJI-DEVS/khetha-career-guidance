@@ -56,6 +56,73 @@ public class AdminAnalyticsController : ControllerBase
             .OrderByDescending(v => v.Count)
             .ToList();
 
+        // ---- Who is on the platform -------------------------------------
+        var roleRows = await _db.UserRoles.GroupBy(r => r.Role)
+            .Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        int Role(string r) => roleRows.FirstOrDefault(x => x.Key == r)?.Count ?? 0;
+        var assigned = roleRows.Sum(x => x.Count);
+        // Learners who created a profile before ever claiming a role still count
+        // as people using the service, so they are shown rather than dropped.
+        var unassigned = Math.Max(0, matriculants.Count - Role("student"));
+        var roles = new RoleBreakdownDto(
+            Role("student"), Role("mentor"), Role("professional"), Role("admin"), unassigned,
+            assigned + unassigned);
+
+        // ---- Growth ------------------------------------------------------
+        var now = DateTime.UtcNow;
+        var since30 = now.AddDays(-30);
+        var recent = matriculants.Where(m => m.CreatedAt >= since30).ToList();
+        var daily = recent
+            .GroupBy(m => DateOnly.FromDateTime(m.CreatedAt))
+            .Select(g => new DailyCountDto(g.Key, g.Count()))
+            .OrderBy(d => d.Day)
+            .ToList();
+        var growth = new GrowthDto(
+            matriculants.Count(m => m.CreatedAt >= now.AddDays(-7)),
+            recent.Count,
+            Math.Round(recent.Count / 30.0, 2),
+            daily);
+
+        // ---- Mentor pipeline ---------------------------------------------
+        var apps = await _db.MentorApplications
+            .Select(a => new { a.Status, a.SubmittedAt, a.DecidedAt })
+            .ToListAsync(ct);
+        var pendingApps = apps.Where(a => a.Status == "pending").ToList();
+        var decided = apps.Where(a => a.DecidedAt != null)
+            .Select(a => (a.DecidedAt!.Value - a.SubmittedAt).TotalDays)
+            .OrderBy(d => d).ToList();
+
+        var pipeline = new MentorPipelineDto(
+            Pending: pendingApps.Count,
+            Approved: apps.Count(a => a.Status == "approved"),
+            Declined: apps.Count(a => a.Status == "rejected"),
+            ActiveMentors: approvedMentors,
+            // The oldest waiting application is the number that matters: one
+            // sitting for weeks is a learner not being reached.
+            OldestPendingDays: pendingApps.Count == 0 ? null
+                : (int)Math.Floor((now - pendingApps.Min(a => a.SubmittedAt)).TotalDays),
+            MedianDaysToDecision: decided.Count == 0 ? null
+                : Math.Round(decided[decided.Count / 2], 1),
+            PendingEvents: await _db.MentorEvents.CountAsync(e => e.Status == "pending", ct),
+            ApprovedEvents: await _db.MentorEvents.CountAsync(e => e.Status == "approved", ct),
+            UpcomingEvents: await _db.MentorEvents.CountAsync(
+                e => e.Status == "approved" && e.StartsAt >= now, ct));
+
+        // ---- Reach: what learners actually sign up on --------------------
+        List<LabelCountDto> Mix(Func<Models.Matriculant, string?> pick) => matriculants
+            .GroupBy(m => string.IsNullOrWhiteSpace(pick(m)) ? "unknown" : pick(m)!)
+            .Select(g => new LabelCountDto(g.Key, g.Count()))
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        var deviceMix = Mix(m => m.SignupDeviceType);
+        var platformMix = Mix(m => m.SignupPlatform);
+        var gradeMix = matriculants
+            .GroupBy(m => m.Grade is null ? "Not given" : $"Grade {m.Grade}")
+            .Select(g => new LabelCountDto(g.Key, g.Count()))
+            .OrderBy(x => x.Label)
+            .ToList();
+
         return Ok(new AdminAnalyticsResponse(
             TotalMatriculants: matriculants.Count,
             MatriculantsByProvince: byProvince,
@@ -67,7 +134,13 @@ public class AdminAnalyticsController : ControllerBase
             AcceptedHelpRequests: acceptedRequests,
             DeclinedHelpRequests: declinedRequests,
             RecommendationLettersIssued: lettersIssued,
-            VerificationMix: verificationMix
+            VerificationMix: verificationMix,
+            Roles: roles,
+            Growth: growth,
+            Pipeline: pipeline,
+            DeviceMix: deviceMix,
+            PlatformMix: platformMix,
+            GradeMix: gradeMix
         ));
     }
 }

@@ -1,23 +1,28 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance) — the
+// Extracted from App.jsx's root component (KhethaCareerGuidance) — the
 // `mobileShell` JSX tree. Receives everything it needs as props; the root
 // still owns all the underlying state and just threads it down.
 import React from 'react';
 import { ROLES } from '../../data/roles';
+import { useScrollReset } from '../../hooks/useScrollReset';
 import { NextStepBar } from '../learner/NextStepBar';
 import { DeptBar } from './DeptBar';
 import { ColourRule } from './ColourRule';
 import { HeaderActions } from './HeaderActions';
 import { OfflinePill } from './OfflinePill';
+import { InstallPrompt } from './InstallPrompt';
 
 export function MobileShell({
   shellWidth, shellHeight, shellClass, layout,
   session, isStudent, role, setRole, setSession, setRoute,
   textScale, body, modals,
-  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity,
+  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, avatar,
   online, onGoOffline, t,
   showNextStep, journey, go, onDismissNextBar,
   NAV, SECONDARY, tab, setTab, route,
+  installable, onInstall,
 }) {
+  const scrollRef = useScrollReset(tab, route);
+
   return (
     <div className="flex min-h-screen items-center justify-center p-0 sm:p-6">
       <div className={`relative flex h-screen w-full ${shellWidth} flex-col overflow-hidden bg-slate-50 shadow-2xl ${shellHeight} sm:rounded-[2.25rem] sm:border-[10px] sm:border-slate-900 ${shellClass}`}>
@@ -30,7 +35,7 @@ export function MobileShell({
         <div className="shrink-0 bg-white px-4 pb-3 pt-3">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Njinji Career Guidance</h1>
+              <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">Khetha Career Guidance</h1>
               <p className="mt-1 text-[11px] leading-tight text-slate-600">
                 Department of Higher Education &amp; Training · NCAP modern gateway
               </p>
@@ -39,7 +44,7 @@ export function MobileShell({
               <div className="flex items-center gap-1.5">
                 <OfflinePill online={online} offline={offline} saveOffline={saveOffline} onGoOffline={onGoOffline} t={t} />
                 <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications}
-                  onOpenProfile={onOpenProfile} identity={identity}
+                  onOpenProfile={onOpenProfile} identity={identity} avatar={avatar}
                   onSignOut={() => { setRole(null); setSession(null); setRoute(null); }} />
               </div>
             )}
@@ -58,11 +63,23 @@ export function MobileShell({
         </div>
         <ColourRule />
 
-        <main className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
-          <div className={layout === "tablet" ? "mx-auto w-full max-w-2xl" : ""}>{body}</div>
-        </main>
+        <div className="relative min-h-0 flex-1">
+          <main ref={scrollRef} className="h-full overflow-y-auto" style={{ zoom: textScale }}>
+            <div className={layout === "tablet" ? "mx-auto w-full max-w-2xl" : ""}>{body}</div>
+          </main>
+
+          {session && !(tab === "advisor" && !route) && (
+            <button onClick={() => { setTab("advisor"); setRoute(null); }}
+              aria-label="Chat with the Khetha advisor"
+              className="absolute bottom-3 left-3 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 text-base font-bold k-tx-0F172A shadow-lg ring-2 ring-white">
+              K
+            </button>
+          )}
+        </div>
 
         {showNextStep && <NextStepBar t={t} journey={journey} go={go} onDismiss={onDismissNextBar} />}
+
+        <InstallPrompt installable={installable} onInstall={onInstall} />
 
         {session && (
           <nav className="shrink-0 border-t border-slate-200 bg-white">

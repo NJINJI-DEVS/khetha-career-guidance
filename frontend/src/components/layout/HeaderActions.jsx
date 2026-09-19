@@ -1,10 +1,11 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance).
+// Extracted from App.jsx's root component (KhethaCareerGuidance).
 // Originally an inline closure over `settings`/`setTab`/`setRoute`/`unread`;
 // converted to explicit props so it can live in its own file — the root now
 // does `onOpenNotifications={() => { setTab("me"); setRoute(null); }}`.
 import { WifiOff, Bell, LogOut } from 'lucide-react';
+import { Avatar } from '../ui/Avatar';
 
-export function HeaderActions({ offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, onSignOut }) {
+export function HeaderActions({ offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, avatar, onSignOut }) {
   return (
     <div className="flex items-center gap-1.5">
       {(offline || saveOffline) && (
@@ -26,8 +27,8 @@ export function HeaderActions({ offline, saveOffline, unread, onOpenNotification
           room for — without this the learner could not reach it at all. */}
       {onOpenProfile && (
         <button onClick={onOpenProfile} aria-label="My profile and settings"
-          className="grid h-9 w-9 place-items-center rounded-full k-bg-005A36 text-[11px] font-bold text-white ring-1 k-rg-00784A">
-          {(identity || "K").slice(0, 2).toUpperCase()}
+          className="shrink-0 rounded-full ring-1 k-rg-00784A">
+          <Avatar name={identity} avatar={avatar} size={36} rounded="rounded-full" />
         </button>
       )}
       {onSignOut && (

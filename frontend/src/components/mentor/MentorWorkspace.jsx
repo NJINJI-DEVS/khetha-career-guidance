@@ -7,12 +7,15 @@ import { THEME } from '../../theme/tokens';
 import { EmptyState } from '../ui/EmptyState';
 import { Pill } from '../ui/Pill';
 import { VerificationBanner } from './VerificationBanner';
+import { MentorEvents } from './MentorEvents';
+import { EventRegister } from './EventRegister';
 import { RecommendationLetterModal } from './RecommendationLetterModal';
 
 export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, onVerify, application, loading, error, onRefresh }) {
   const [letterFor, setLetterFor] = useState(null);
   const [filter, setFilter] = useState("pending");
   const [actingOn, setActingOn] = useState(null);
+  const [registerFor, setRegisterFor] = useState(null);
 
   if (loading) return <p className="p-6 text-sm text-slate-600">Checking your application…</p>;
   if (error) return <div className="space-y-3 p-6"><p role="alert" className="text-sm text-red-700">Couldn't check your application status.</p><button onClick={onRefresh} className="rounded-lg border p-2">Retry</button></div>;
@@ -30,6 +33,10 @@ export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, o
     setActingOn(id);
     try { await onRespond(id, accept); } finally { setActingOn(null); }
   };
+
+  if (registerFor) {
+    return <EventRegister event={registerFor} onBack={() => setRegisterFor(null)} />;
+  }
 
   return (
     <div className="space-y-4 p-4 pb-6">
@@ -125,6 +132,10 @@ export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, o
           ))}
         </div>
       )}
+
+      <div className="border-t border-slate-200 pt-4">
+        <MentorEvents verified={verified} onOpenRegister={setRegisterFor} />
+      </div>
 
       {letterFor && (
         <RecommendationLetterModal request={letterFor} session={session}

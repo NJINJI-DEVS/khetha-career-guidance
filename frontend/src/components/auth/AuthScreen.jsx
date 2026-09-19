@@ -22,6 +22,7 @@ import {
   signInWithPassword, signUpWithPassword, signInWithEmailOtp, verifyEmailOtp,
   signInWithPhoneOtp, verifyPhoneOtp, signInWithOAuth,
 } from '../../services/authService';
+import { getMyConsent, saveMyConsent } from '../../lib/api';
 
 /* ==================================================================
    A1 / A2: consent, secure sign-in, two-step verification
@@ -37,12 +38,75 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
   const [phone, setPhone] = useState("");
   const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(""));
   const [trustDevice, setTrustDevice] = useState(true);
-  const [consent, setConsent] = useState({ core: true, ncap: true, notify: true, research: false });
+  const [consent, setConsent] = useState({ core: true, notify: true, research: false });
   const [ageGate, setAgeGate] = useState(null);   /* {minor, guardian?} — POPIA gate, see GuardianConsent */
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const [pendingAuth, setPendingAuth] = useState(null); // holds {method, identity} once Supabase auth succeeds, before consent
+  const [savingConsent, setSavingConsent] = useState(false);
+
+  // Only learners are asked their age. POPIA's protection for a child's
+  // personal information is what the question exists for, and it applies to
+  // the learners using this service - a mentor, professional or departmental
+  // administrator holds an adult account by the nature of the role, so asking
+  // them is a question with no consequence attached to either answer.
+  const needsAgeGate = role === "student";
+
+  /**
+   * Called the moment Supabase accepts the credentials.
+   *
+   * Consent belongs to creating an account, not to signing in. Someone who
+   * already has an account is never stopped on their way in - not when the
+   * server has their consent on file, and not when it does not. The only
+   * screen that ever shows it is the one where the account is being made.
+   *
+   * That last part matters for the accounts that already existed before
+   * consent was recorded at all: gating them would mean every returning user
+   * hits a privacy form on a login they have done twenty times. Their choices
+   * are captured in Settings instead, where the privacy panel says nothing is
+   * on file yet and the toggles write it.
+   *
+   * `isNewAccount` is passed in rather than inferred here, because only the
+   * caller knows how the account arrived: an explicit sign-up, or a first-ever
+   * OAuth/one-time-code sign-in where Supabase created the user on the spot.
+   */
+  const afterAuth = async (auth, { isNewAccount = false } = {}) => {
+    setPendingAuth(auth);
+
+    const enter = (consentRecord) => onAuthenticated({
+      ...auth,
+      trustDevice,
+      consent: consentRecord
+        ? { core: consentRecord.core, ncap: consentRecord.ncap,
+            notify: consentRecord.notify, research: consentRecord.research }
+        : { core: true, ncap: false, notify: false, research: false },
+      ageGate: consentRecord
+        ? { minor: consentRecord.isMinor,
+            guardian: consentRecord.guardianName
+              ? { name: consentRecord.guardianName, relation: consentRecord.guardianRelation,
+                  contact: consentRecord.guardianContact }
+              : undefined }
+        : { minor: false },
+      // Tells the app whether a consent record exists, so Settings can ask for
+      // one without any of this interrupting the login.
+      consentOnFile: !!consentRecord,
+      signedInAt: new Date(),
+    });
+
+    // A brand new account cannot have consent on file, so there is nothing to
+    // look up - go straight to the one screen that asks.
+    if (isNewAccount) { setStep("consent"); return; }
+
+    try {
+      enter(await getMyConsent());
+    } catch {
+      // No record, or the lookup failed (offline). Either way this is an
+      // existing account signing in, and it is let through. Defaults are the
+      // cautious ones: nothing optional is assumed to have been agreed to.
+      enter(null);
+    }
+  };
   const boxes = useRef([]);
 
   useEffect(() => {
@@ -94,8 +158,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
         setStep("confirmEmail");
         return;
       }
-      setPendingAuth({ method: "email", identity: email });
-      setStep("consent");
+      await afterAuth({ method: "email", identity: email }, { isNewAccount: mode === "signup" });
       return;
     }
 
@@ -159,8 +222,39 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
       setDigits(Array(OTP_LENGTH).fill("")); boxes.current[0]?.focus();
       return;
     }
-    setPendingAuth({ method, identity });
-    setStep("consent");
+    const created = data?.user?.created_at ? new Date(data.user.created_at) : null;
+    const justCreated = !!created && (Date.now() - created.getTime()) < 120000;
+    await afterAuth({ method, identity }, { isNewAccount: justCreated });
+  };
+
+  /**
+   * Records consent server-side, then continues. Persisting BEFORE entering the
+   * app is deliberate: if the write fails, the person has not been let in on an
+   * agreement nobody kept a record of.
+   */
+  const submitConsent = async () => {
+    setError("");
+    setSavingConsent(true);
+    const gate = ageGate || { minor: false };
+    try {
+      await saveMyConsent({
+        core: true,
+        ncap: !!consent.ncap,
+        notify: !!consent.notify,
+        research: !!consent.research,
+        isMinor: !!gate.minor,
+        guardianName: gate.guardian?.name ?? null,
+        guardianRelation: gate.guardian?.relation ?? null,
+        guardianContact: gate.guardian?.contact ?? null,
+      });
+      onAuthenticated({
+        ...pendingAuth, trustDevice, consent, ageGate: gate,
+        consentOnFile: true, signedInAt: new Date(),
+      });
+    } catch (err) {
+      setError(err.body?.error || "Could not save your choices. Check your connection and try again.");
+      setSavingConsent(false);
+    }
   };
 
   const back = () => {
@@ -403,9 +497,11 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
           the rest whenever you like.
         </p>
 
-        <div className="mt-5">
-          <GuardianConsent onDone={setAgeGate} onDefer={() => setStep("choose")} />
-        </div>
+        {needsAgeGate ? (
+          <div className="mt-5">
+            <GuardianConsent onDone={setAgeGate} onDefer={() => setStep("choose")} />
+          </div>
+        ) : null}
 
         <div className="mt-3 space-y-2.5">
           {CONSENT_ITEMS.map((c) => {
@@ -438,17 +534,25 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
           delete everything from Settings at any time.
         </p>
 
+        {error && (
+          <p className="mt-3 rounded-xl k-bg-FBEAE8 p-3 text-xs leading-relaxed k-tx-9B1C14">{error}</p>
+        )}
+
         <button
-          onClick={() => onAuthenticated({ ...pendingAuth, trustDevice, consent, ageGate, signedInAt: new Date() })}
-          disabled={!ageGate}
+          onClick={submitConsent}
+          disabled={savingConsent || (needsAgeGate && !ageGate)}
           className="mt-5 w-full rounded-xl k-bg-005A36 py-3 text-sm font-semibold text-white k-dis">
-          Agree and continue
+          {savingConsent ? "Saving\u2026" : "Agree and continue"}
         </button>
-        {!ageGate && (
+        {needsAgeGate && !ageGate && (
           <p className="mt-2 text-center text-[11px] text-slate-600">
             Answer how old you are first — under-18s need a guardian named before anything is stored.
           </p>
         )}
+        <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-600">
+          You are asked this once. Next time you sign in, these choices are already on file — change them any time in
+          Settings.
+        </p>
       </div>
     );
   }

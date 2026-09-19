@@ -1,10 +1,11 @@
-// Extracted from App.jsx's root component (NjinjiCareerGuidance) — the
+// Extracted from App.jsx's root component (KhethaCareerGuidance) — the
 // `desktopShell` JSX tree. Receives everything it needs as props; the root
 // still owns all the underlying state and just threads it down.
 import React from 'react';
 import { MessageSquare, User } from 'lucide-react';
 import { THEME } from '../../theme/tokens';
 import { ROLES } from '../../data/roles';
+import { useScrollReset } from '../../hooks/useScrollReset';
 import { Progress } from '../ui/Progress';
 import { DhetArms, KhethaWordmark } from '../ui/BrandMarks';
 import { ColourRule } from './ColourRule';
@@ -17,9 +18,11 @@ export function DesktopShell({
   requests, applications,
   isStudent, learner, journey, t, go,
   onSendSms,
-  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, online, onGoOffline,
+  offline, saveOffline, unread, onOpenNotifications, onOpenProfile, identity, avatar, online, onGoOffline,
   textScale, body, modals,
 }) {
+  const scrollRef = useScrollReset(tab, route);
+
   return (
     <div className={`flex min-h-screen ${shellClass}`} style={{ background: THEME.bg }}>
       <aside className="relative flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
@@ -32,7 +35,7 @@ export function DesktopShell({
         </div>
 
         <div className="px-5 py-4">
-          <h1 className="text-base font-bold leading-tight tracking-tight text-slate-900">Njinji Career Guidance</h1>
+          <h1 className="text-base font-bold leading-tight tracking-tight text-slate-900">Khetha Career Guidance</h1>
           <p className="mt-1 text-[11px] leading-tight text-slate-600">NCAP modern gateway</p>
           <div className="mt-3"><KhethaWordmark className="h-7" /></div>
         </div>
@@ -120,7 +123,7 @@ export function DesktopShell({
         <header className="flex shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-6 py-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold tracking-tight text-slate-900">
-              {(NAV.concat(SECONDARY).find((x) => x.key === tab) || {}).label || "Njinji Career Guidance"}
+              {(NAV.concat(SECONDARY).find((x) => x.key === tab) || {}).label || "Khetha Career Guidance"}
             </h2>
             <p className="text-[11px] text-slate-600">
               {!role ? "Choose how you are joining"
@@ -134,16 +137,24 @@ export function DesktopShell({
             <div className="flex items-center gap-1.5">
               <OfflinePill online={online} offline={offline} saveOffline={saveOffline} onGoOffline={onGoOffline} t={t} />
               <HeaderActions offline={offline} saveOffline={saveOffline} unread={unread} onOpenNotifications={onOpenNotifications}
-                onOpenProfile={onOpenProfile} identity={identity}
+                onOpenProfile={onOpenProfile} identity={identity} avatar={avatar}
                 onSignOut={() => { setRole(null); setSession(null); setRoute(null); }} />
             </div>
           )}
         </header>
         <ColourRule />
 
-        <main className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
+        <main ref={scrollRef} className="flex-1 overflow-y-auto" style={{ zoom: textScale }}>
           <div className={tab === "advisor" ? "h-full" : "mx-auto w-full max-w-5xl"}>{body}</div>
         </main>
+
+        {session && !(tab === "advisor" && !route) && (
+          <button onClick={() => { setTab("advisor"); setRoute(null); }}
+            aria-label="Chat with the Khetha advisor"
+            className="absolute bottom-5 left-5 z-10 grid h-12 w-12 place-items-center rounded-full k-bg-D4AF37 text-base font-bold k-tx-0F172A shadow-lg ring-2 ring-white">
+            K
+          </button>
+        )}
 
         {modals}
       </div>
