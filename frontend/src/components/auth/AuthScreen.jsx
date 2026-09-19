@@ -38,7 +38,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
   const [phone, setPhone] = useState("");
   const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(""));
   const [trustDevice, setTrustDevice] = useState(true);
-  const [consent, setConsent] = useState({ core: true, ncap: true, notify: true, research: false });
+  const [consent, setConsent] = useState({ core: true, notify: true, research: false });
   const [ageGate, setAgeGate] = useState(null);   /* {minor, guardian?} — POPIA gate, see GuardianConsent */
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,11 +78,14 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
       ...auth,
       trustDevice,
       consent: consentRecord
-        ? { core: consentRecord.core, ncap: consentRecord.ncap,
-            notify: consentRecord.notify, research: consentRecord.research }
-        : { core: true, ncap: false, notify: false, research: false },
+        ? { core: consentRecord.core, notify: consentRecord.notify,
+            research: consentRecord.research }
+        : { core: true, notify: false, research: false },
       ageGate: consentRecord
         ? { minor: consentRecord.isMinor,
+            // Restored from the record so a learner who signs up, leaves, and
+            // returns before finishing onboarding still has a date of birth.
+            dateOfBirth: consentRecord.dateOfBirth ?? null,
             guardian: consentRecord.guardianName
               ? { name: consentRecord.guardianName, relation: consentRecord.guardianRelation,
                   contact: consentRecord.guardianContact }
@@ -239,10 +242,10 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
     try {
       await saveMyConsent({
         core: true,
-        ncap: !!consent.ncap,
         notify: !!consent.notify,
         research: !!consent.research,
         isMinor: !!gate.minor,
+        dateOfBirth: gate.dateOfBirth ?? null,
         guardianName: gate.guardian?.name ?? null,
         guardianRelation: gate.guardian?.relation ?? null,
         guardianContact: gate.guardian?.contact ?? null,

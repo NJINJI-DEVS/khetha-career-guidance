@@ -10,13 +10,15 @@ public record AccountRoleDto(string Role);
 
 /// <summary>What the person ticked, plus guardian details where they apply.</summary>
 public record ConsentDto(
-    bool Core, bool Ncap, bool Notify, bool Research,
-    bool IsMinor, string? GuardianName, string? GuardianRelation, string? GuardianContact,
+    bool Core, bool Notify, bool Research,
+    bool IsMinor, DateOnly? DateOfBirth,
+    string? GuardianName, string? GuardianRelation, string? GuardianContact,
     int Version, DateTime AcceptedAt);
 
 public record SaveConsentDto(
-    bool Core, bool Ncap, bool Notify, bool Research,
-    bool IsMinor, string? GuardianName, string? GuardianRelation, string? GuardianContact);
+    bool Core, bool Notify, bool Research,
+    bool IsMinor, DateOnly? DateOfBirth,
+    string? GuardianName, string? GuardianRelation, string? GuardianContact);
 
 /// <summary>
 /// Binds a Supabase account to a single role, permanently, the first time it's
@@ -90,8 +92,8 @@ public class AccountController : ControllerBase
         if (c is null || c.Version < UserConsent.CurrentVersion) return NotFound();
 
         return Ok(new ConsentDto(
-            c.Core, c.Ncap, c.Notify, c.Research,
-            c.IsMinor, c.GuardianName, c.GuardianRelation, c.GuardianContact,
+            c.Core, c.Notify, c.Research,
+            c.IsMinor, c.DateOfBirth, c.GuardianName, c.GuardianRelation, c.GuardianContact,
             c.Version, c.AcceptedAt));
     }
 
@@ -118,10 +120,10 @@ public class AccountController : ControllerBase
         c ??= new UserConsent { UserId = CurrentUserId };
 
         c.Core = body.Core;
-        c.Ncap = body.Ncap;
         c.Notify = body.Notify;
         c.Research = body.Research;
         c.IsMinor = body.IsMinor;
+        c.DateOfBirth = body.DateOfBirth;
         c.GuardianName = body.GuardianName?.Trim();
         c.GuardianRelation = body.GuardianRelation?.Trim();
         c.GuardianContact = body.GuardianContact?.Trim();
@@ -136,13 +138,13 @@ public class AccountController : ControllerBase
             Action = isNew ? "consent.given" : "consent.updated",
             EntityType = "user_consent",
             EntityId = CurrentUserId,
-            Details = $"v{c.Version};ncap={c.Ncap};notify={c.Notify};research={c.Research};minor={c.IsMinor}",
+            Details = $"v{c.Version};notify={c.Notify};research={c.Research};minor={c.IsMinor}",
         });
 
         await _db.SaveChangesAsync(ct);
         return Ok(new ConsentDto(
-            c.Core, c.Ncap, c.Notify, c.Research,
-            c.IsMinor, c.GuardianName, c.GuardianRelation, c.GuardianContact,
+            c.Core, c.Notify, c.Research,
+            c.IsMinor, c.DateOfBirth, c.GuardianName, c.GuardianRelation, c.GuardianContact,
             c.Version, c.AcceptedAt));
     }
 }

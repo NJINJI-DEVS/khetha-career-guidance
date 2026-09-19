@@ -120,17 +120,22 @@ function EventCard({ e, onAccept, onCancel, busy }) {
   );
 }
 
-export function EventInvites({ learner, go }) {
+export function EventInvites({ learner, go, isGuest }) {
   const [events, setEvents] = useState([]);
   const [status, setStatus] = useState('loading');
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
+    // A guest holds no session, so this endpoint would refuse them. Saying so
+    // is better than reporting a connection problem they cannot fix -- and
+    // accepting a place needs an account anyway, since the mentor has to know
+    // who is coming.
+    if (isGuest) { setStatus('guest'); return; }
     getUpcomingMentorEvents({ province: learner?.province, days: 180 })
       .then((d) => { setEvents(d); setStatus('ready'); })
       .catch(() => setStatus('error'));
-  }, [learner?.province]);
+  }, [learner?.province, isGuest]);
 
   useEffect(load, [load]);
 
@@ -180,6 +185,12 @@ export function EventInvites({ learner, go }) {
       )}
       {status === 'error' && (
         <p className="text-xs text-slate-600">Couldn't load invitations right now. Check your connection.</p>
+      )}
+
+      {status === 'guest' && (
+        <EmptyState icon={CalendarDays} title="Create an account to accept invitations"
+          body="Mentors set aside a fixed number of places, so they need to know who is coming. Browsing is free, but a place is held in your name."
+          cta="Create an account" onCta={() => go('tab:me')} />
       )}
 
       {status === 'ready' && going.length > 0 && (

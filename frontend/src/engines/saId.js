@@ -1,6 +1,8 @@
 // Extracted from App.jsx (Stage 2 of the App.jsx split — see
 // plans/nested-churning-hellman.md). Moved verbatim, no logic changes.
 
+import { calculateAge } from './age';
+
 /* ---- South African ID number validation --------------------------- */
 export function checkSaId(raw) {
   const id = (raw || "").replace(/\s/g, "");
@@ -23,7 +25,11 @@ export function checkSaId(raw) {
 
   const nowYY = new Date().getFullYear() % 100;
   const century = yy <= nowYY ? 2000 : 1900;
-  const age = new Date().getFullYear() - (century + yy);
+  // Month/day were already range-checked above, but not whether Feb 30 etc.
+  // exists in that specific year — new Date() silently rolls those over
+  // rather than throwing, so this can't itself invalidate an ID, but the age
+  // it produces stays correct for every real date.
+  const age = calculateAge(new Date(century + yy, mm - 1, dd));
 
   return { valid: true, age, citizen: citizen === 0 ? "SA citizen" : "permanent resident" };
 }
