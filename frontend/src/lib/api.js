@@ -57,13 +57,6 @@ export const askAdvisor = (message, language) =>
     body: JSON.stringify({ message, language }),
   });
 
-/** Consent already on file. Throws with status 404 when there is none, or when
- *  what is on file predates the current consent wording. */
-export const getMyConsent = () => apiFetch('/api/account/consent');
-
-export const saveMyConsent = (consent) =>
-  apiFetch('/api/account/consent', { method: 'POST', body: JSON.stringify(consent) });
-
 export const calculateAps = (subjects) =>
   apiFetch('/api/aps/calculate', {
     method: 'POST',
@@ -116,13 +109,6 @@ export const updateMyPreferences = (preferences) =>
 
 export const deleteMyProfileData = () =>
   apiFetch('/api/matriculants/me/profile-data', { method: 'DELETE' });
-
-/** Whole-object replace; see MatriculantsController.UpdatePreferences. */
-export const updateMyPreferences = (preferences) =>
-  apiFetch('/api/matriculants/me/preferences', {
-    method: 'PUT',
-    body: JSON.stringify(preferences),
-  });
 
 export const searchSaqa = (q) =>
   apiFetch(`/api/qualifications/saqa${q ? `?q=${encodeURIComponent(q)}` : ''}`);
