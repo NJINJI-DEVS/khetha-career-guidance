@@ -213,7 +213,7 @@ export function AuthScreen({ onAuthenticated, role, onBack, t, lang, setLang, on
     if (code.length < OTP_LENGTH) return setError("Enter all six digits.");
     setBusy(true);
     const d = phone.replace(/\D/g, "");
-    const { error: err } = method === "phone"
+    const { data, error: err } = method === "phone"
       ? await verifyPhoneOtp(`+27${d}`, code)
       : await verifyEmailOtp(email, code);
     setBusy(false);
