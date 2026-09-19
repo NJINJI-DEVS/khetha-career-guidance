@@ -27,6 +27,8 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<CvDocument> CvDocuments => Set<CvDocument>();
+    public DbSet<MentorEvent> MentorEvents => Set<MentorEvent>();
+    public DbSet<MentorEventRegistration> MentorEventRegistrations => Set<MentorEventRegistration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -110,6 +112,31 @@ public class AppDbContext : DbContext
         // want: unlimited private CVs, one row per live share token.
         modelBuilder.Entity<CvDocument>().HasIndex(c => c.ShareToken).IsUnique()
             .HasDatabaseName("cv_documents_share_token_key");
+
+        // The admin queue reads pending events; the learner calendar reads
+        // approved ones by date. Both are covered here.
+        modelBuilder.Entity<MentorEvent>().HasIndex(e => e.Status).HasDatabaseName("ix_mentor_events_status");
+        modelBuilder.Entity<MentorEvent>().HasIndex(e => e.MentorUserId).HasDatabaseName("ix_mentor_events_mentor");
+        modelBuilder.Entity<MentorEvent>()
+            .HasIndex(e => new { e.Status, e.StartsAt })
+            .HasDatabaseName("ix_mentor_events_status_starts");
+
+        // One registration row per learner per event, enforced by the database.
+        // A double-tap on a slow connection, or two tabs, must not consume two
+        // places -- and the accept path relies on this to be able to reinstate a
+        // cancelled booking instead of inserting a second one.
+        modelBuilder.Entity<MentorEventRegistration>()
+            .HasIndex(r => new { r.MentorEventId, r.LearnerUserId })
+            .IsUnique()
+            .HasDatabaseName("mentor_event_registrations_unique");
+        modelBuilder.Entity<MentorEventRegistration>()
+            .HasIndex(r => r.LearnerUserId)
+            .HasDatabaseName("ix_mentor_event_registrations_learner");
+        modelBuilder.Entity<MentorEventRegistration>()
+            .HasOne(r => r.MentorEvent)
+            .WithMany()
+            .HasForeignKey(r => r.MentorEventId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<DataSyncLog>()
             .HasIndex(d => new { d.SourceName, d.RunAt })

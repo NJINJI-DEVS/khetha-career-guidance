@@ -7,12 +7,15 @@ import { THEME } from '../../theme/tokens';
 import { EmptyState } from '../ui/EmptyState';
 import { Pill } from '../ui/Pill';
 import { VerificationBanner } from './VerificationBanner';
+import { MentorEvents } from './MentorEvents';
+import { EventRegister } from './EventRegister';
 import { RecommendationLetterModal } from './RecommendationLetterModal';
 
 export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, onVerify, application }) {
   const [letterFor, setLetterFor] = useState(null);
   const [filter, setFilter] = useState("pending");
   const [actingOn, setActingOn] = useState(null);
+  const [registerFor, setRegisterFor] = useState(null);
 
   const verified = application?.status === "approved";
   const counts = {
@@ -27,6 +30,10 @@ export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, o
     setActingOn(id);
     try { await onRespond(id, accept); } finally { setActingOn(null); }
   };
+
+  if (registerFor) {
+    return <EventRegister event={registerFor} onBack={() => setRegisterFor(null)} />;
+  }
 
   return (
     <div className="space-y-4 p-4 pb-6">
@@ -121,6 +128,10 @@ export function MentorWorkspace({ session, requests, onRespond, onIssueLetter, o
           ))}
         </div>
       )}
+
+      <div className="border-t border-slate-200 pt-4">
+        <MentorEvents verified={verified} onOpenRegister={setRegisterFor} />
+      </div>
 
       {letterFor && (
         <RecommendationLetterModal request={letterFor} session={session}

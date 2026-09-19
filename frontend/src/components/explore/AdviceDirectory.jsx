@@ -5,7 +5,7 @@
 // service. Events and walk-in centres use real distance when the learner
 // opts into location, and province otherwise.
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Bell, CalendarDays, CircleHelp, ChevronRight, ChevronDown, Navigation,
   Copy, Check, ExternalLink, RefreshCw, MapPin, Phone,
@@ -13,10 +13,18 @@ import {
 import { CHANNELS, EVENTS, FAQS, KHETHA_CONTACT } from '../../data/outreach';
 import { PROVIDERS } from '../../data/providers';
 import { rotateFaqs } from '../../engines/faqRotation';
+import { getUpcomingMentorEvents } from '../../lib/api';
 import { useNearby, fmtKm } from '../../hooks/useNearby';
 import { SectionTitle } from '../ui/SectionTitle';
 import { Pill } from '../ui/Pill';
 import { CallbackModal } from './CallbackModal';
+
+const KIND_LABEL = {
+  seminar: "Seminar",
+  shadowing: "Work shadowing",
+  site_visit: "Site visit",
+  talk: "Career talk",
+};
 
 function LocationButton({ nearby, label }) {
   if (nearby.status === "granted") {
@@ -59,11 +67,40 @@ export function AdviceDirectory({ notify, learner, go }) {
     [learner?.grade]
   );
 
+  /* Approved mentor sessions — seminars, work shadowing and site visits.
+     Only ever events an administrator has approved; the endpoint returns
+     nothing else. A failure here leaves the standing outreach events intact
+     rather than emptying the section. */
+  const [mentorEvents, setMentorEvents] = useState([]);
+  useEffect(() => {
+    let live = true;
+    getUpcomingMentorEvents({ province: learner?.province, days: 120 })
+      .then((d) => { if (live) setMentorEvents(d); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [learner?.province]);
+
   const events = useMemo(() => {
-    const withDistance = EVENTS.map((e) => ({ ...e, km: nearby.distanceTo(e) }));
-    if (!nearby.coords) return withDistance;
-    return withDistance.sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9));
-  }, [nearby.coords]); // eslint-disable-line react-hooks/exhaustive-deps
+    const fromMentors = mentorEvents.map((e) => ({
+      id: `me-${e.id}`,
+      title: e.title,
+      date: new Date(e.startsAt).toLocaleString("en-ZA", {
+        weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+      }),
+      venue: e.venue,
+      type: KIND_LABEL[e.kind] || "Session",
+      province: e.isOnline ? "Online" : e.province,
+      // What a learner gets out of attending — the reason the mentor had to
+      // write it and the reason an administrator approved it.
+      impact: e.impact,
+      host: e.mentorName,
+      startsAt: e.startsAt,
+    }));
+    const standing = EVENTS.map((e) => ({ ...e, km: nearby.distanceTo(e) }));
+    const all = [...fromMentors, ...standing];
+    if (!nearby.coords) return all;
+    return all.sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9));
+  }, [nearby.coords, mentorEvents]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Khetha practitioners sit at TVET and community education centres. */
   const centres = useMemo(() => {
@@ -209,6 +246,10 @@ export function AdviceDirectory({ notify, learner, go }) {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-slate-900">{e.title}</p>
                 <p className="mt-0.5 text-[11px] text-slate-600">{e.date} · {e.venue}</p>
+                {e.impact && (
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-700">{e.impact}</p>
+                )}
+                {e.host && <p className="mt-1 text-[11px] text-slate-600">Hosted by {e.host}</p>}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <Pill tone="slate">{e.type}</Pill>
                   <Pill tone="slate">{e.province}</Pill>
